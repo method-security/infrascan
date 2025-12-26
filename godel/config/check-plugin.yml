@@ -1,0 +1,20 @@
+checks:
+  golint:
+    filters:
+      - value: "should have comment or be unexported"
+      - value: "or a comment on this block"
+    exclude:
+      paths: []
+  deadcode:
+    exclude:
+      paths:
+        - main.go
+        - "internal/discover/waps/waps.go"
+        - "internal/discover/waps/waps_frequency.go"
+  varcheck:
+    exclude:
+      paths:
+        - main.go
+  importalias:
+    exclude:
+      paths: []
