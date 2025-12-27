@@ -17,7 +17,7 @@ import (
 )
 
 // scanWindows performs wireless scanning on Windows using netsh wlan.
-func scanWindows(ctx context.Context, interfaceName string, timeout int) ([]*discover.PassiveWirelessObservation, []int, error) {
+func scanWindows(ctx context.Context, interfaceName string, timeout int) ([]*discover.WirelessObservation, []int, error) {
 	log := svc1log.FromContext(ctx)
 	log.Info("Starting Windows wireless scan using netsh wlan")
 
@@ -57,8 +57,8 @@ func scanWindows(ctx context.Context, interfaceName string, timeout int) ([]*dis
 //	         Signal             : 85%
 //	         Radio type         : 802.11ac
 //	         Channel            : 36
-func parseNetshOutput(output string) ([]*discover.PassiveWirelessObservation, []int) {
-	var observations []*discover.PassiveWirelessObservation
+func parseNetshOutput(output string) ([]*discover.WirelessObservation, []int) {
+	var observations []*discover.WirelessObservation
 	channelMap := make(map[int]bool)
 
 	// Split into network blocks
@@ -217,12 +217,12 @@ func parseNetshOutput(output string) ([]*discover.PassiveWirelessObservation, []
 }
 
 // buildWindowsObservation creates an observation from parsed Windows data.
-func buildWindowsObservation(ssid, bssid, auth, encryption string, signal int, radioType string, channel int) *discover.PassiveWirelessObservation {
+func buildWindowsObservation(ssid, bssid, auth, encryption string, signal int, radioType string, channel int) *discover.WirelessObservation {
 	if bssid == "" {
 		return nil
 	}
 
-	obs := &discover.PassiveWirelessObservation{
+	obs := &discover.WirelessObservation{
 		Bssid: bssid,
 	}
 

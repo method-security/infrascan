@@ -70,7 +70,7 @@ func DiscoverWaps(ctx context.Context, config discover.DiscoverWapsConfig) (*dis
 	}
 
 	// Perform platform-specific scanning
-	var observations []*discover.PassiveWirelessObservation
+	var observations []*discover.WirelessObservation
 	var channelsScanned []int
 	var scanErr error
 
@@ -135,8 +135,8 @@ func DiscoverWaps(ctx context.Context, config discover.DiscoverWapsConfig) (*dis
 }
 
 // filterBySSID filters observations to only include those matching the target SSID.
-func filterBySSID(observations []*discover.PassiveWirelessObservation, targetSSID string) []*discover.PassiveWirelessObservation {
-	var filtered []*discover.PassiveWirelessObservation
+func filterBySSID(observations []*discover.WirelessObservation, targetSSID string) []*discover.WirelessObservation {
+	var filtered []*discover.WirelessObservation
 	for _, obs := range observations {
 		if obs.Ssid != nil && *obs.Ssid == targetSSID {
 			filtered = append(filtered, obs)
@@ -146,7 +146,7 @@ func filterBySSID(observations []*discover.PassiveWirelessObservation, targetSSI
 }
 
 // enrichWithVendorInfo adds vendor fingerprint information based on the BSSID OUI.
-func enrichWithVendorInfo(obs *discover.PassiveWirelessObservation) {
+func enrichWithVendorInfo(obs *discover.WirelessObservation) {
 	if obs.Bssid == "" {
 		return
 	}
@@ -200,69 +200,85 @@ func ptr[T any](v T) *T {
 }
 
 // checkPassiveModeSupport verifies that passive mode scanning is available on the current platform.
-// Passive mode requires:
-// - A wireless interface in monitor mode
-// - Elevated privileges (root/administrator)
-// - Platform-specific packet capture capabilities
+//
+// # TRUE PASSIVE SCANNING - LINUX ONLY
+//
+// Passive mode provides genuinely passive WiFi observation that emits NO RF signature.
+// This is only possible on Linux with properly configured hardware and drivers.
+//
+// Requirements:
+//   - Linux with compatible hardware (ath9k, ath5k, mt76 recommended)
+//   - Interface configured in monitor mode with TX disabled
+//   - Root privileges
+//   - libpcap installed (libpcap-dev package)
+//   - CGO enabled at build time
+//
+// Interface Setup (user must do this before scanning):
+//
+//	sudo systemctl stop NetworkManager  # or wpa_supplicant
+//	sudo ip link set <iface> down
+//	sudo iw dev <iface> set type monitor
+//	sudo iw dev <iface> set monitor none
+//	sudo ip link set <iface> up
+//	sudo iw dev <iface> set power_save off
+//
+// Verification (recommended):
+//
+//	Use a second radio to capture and verify zero TX from your MAC.
 func checkPassiveModeSupport(ctx context.Context, interfaceName string) error {
 	log := svc1log.FromContext(ctx)
 
 	switch runtime.GOOS {
 	case "linux":
-		// Linux supports passive mode via monitor mode interfaces
-		// Requires: root privileges, interface in monitor mode, libpcap
-		if interfaceName == "" {
-			return fmt.Errorf("passive mode on Linux requires specifying a monitor mode interface (e.g., wlan0mon). " +
-				"Enable monitor mode with: sudo airmon-ng start <interface>")
-		}
-		// Check if running as root
-		if !isRunningAsRoot() {
-			log.Warn("Passive mode requires root privileges on Linux")
-			return fmt.Errorf("passive mode on Linux requires root privileges. Run with sudo")
-		}
-		// Note: Full implementation would check if interface is in monitor mode
-		// and if libpcap is available. For now, we indicate it's not implemented.
-		return fmt.Errorf("passive mode (monitor mode packet capture) is not yet implemented. " +
-			"Currently supported: active scanning via 'iw' which emits probe requests")
+		// Linux is the only platform where true passive scanning is possible
+		return checkPassiveModeLinux(ctx, interfaceName)
 
 	case "darwin":
-		// macOS passive mode is complex - requires disabling Wi-Fi, using CoreWLAN with monitor mode
-		// Apple has restricted monitor mode access in recent versions
-		if !isRunningAsRoot() {
-			return fmt.Errorf("passive mode on macOS requires root privileges. Run with sudo")
-		}
-		return fmt.Errorf("passive mode on macOS is not yet implemented. " +
-			"macOS restricts monitor mode access. The airport utility always emits probe requests. " +
-			"True passive scanning requires CoreWLAN with specific hardware support")
+		// macOS: Apple controls the wireless stack; firmware TX is unavoidable
+		log.Warn("Passive mode not available on macOS")
+		return fmt.Errorf("passive mode on macOS is NOT POSSIBLE. " +
+			"Apple's firmware always emits probe requests and other TX frames. " +
+			"This is a hardware/firmware limitation, not a software one. " +
+			"True passive scanning requires Linux with compatible hardware (ath9k, etc.)")
 
 	case "windows":
-		// Windows passive mode requires Npcap with monitor mode support and compatible hardware
-		return fmt.Errorf("passive mode on Windows is not yet implemented. " +
-			"Windows requires Npcap (or similar) with monitor mode support and compatible wireless hardware. " +
-			"The netsh wlan command always emits probe requests")
+		// Windows: Driver and OS constraints prevent true passivity
+		log.Warn("Passive mode not available on Windows")
+		return fmt.Errorf("passive mode on Windows is NOT POSSIBLE. " +
+			"Windows drivers and the OS networking stack do not support TX suppression. " +
+			"Even with Npcap and monitor mode, TX frames are unavoidable. " +
+			"True passive scanning requires Linux with compatible hardware (ath9k, etc.)")
 
 	default:
-		return fmt.Errorf("passive mode is not supported on %s", runtime.GOOS)
+		return fmt.Errorf("passive mode is not supported on %s. "+
+			"Only Linux supports true passive scanning", runtime.GOOS)
 	}
 }
 
 // scanPassive performs true passive scanning using monitor mode packet capture.
-// This function captures 802.11 beacon frames without emitting any RF transmissions.
-func scanPassive(ctx context.Context, interfaceName string, timeout int) ([]*discover.PassiveWirelessObservation, []int, error) {
-	// This is a placeholder for future implementation using gopacket/pcap
-	// True passive scanning requires:
-	// 1. Interface in monitor mode
-	// 2. Packet capture library (libpcap/Npcap)
-	// 3. 802.11 frame parsing
-	//
-	// Implementation would:
-	// - Open pcap handle on monitor mode interface
-	// - Set BPF filter for beacon frames (type 0, subtype 8)
-	// - Capture packets for the specified timeout
-	// - Parse 802.11 management frames and extract IEs
-	// - Build PassiveWirelessObservation for each unique BSSID
-
-	return nil, nil, fmt.Errorf("passive scanning not yet implemented - requires monitor mode packet capture")
+//
+// # TRUE PASSIVE SCANNING - ZERO RF EMISSION
+//
+// This function captures 802.11 beacon and probe response frames WITHOUT emitting
+// any RF transmissions. This is achieved through:
+//
+//  1. Monitor mode with TX disabled (iw set monitor none)
+//  2. Packet capture via libpcap (no TX path)
+//  3. Passive channel hopping (iw set channel, no announcements)
+//
+// The user MUST configure the interface before calling:
+//   - Interface in monitor mode
+//   - TX suppression enabled
+//   - Power save disabled
+//   - NetworkManager/wpa_supplicant stopped
+//
+// Supported platforms: Linux only (with CGO and libpcap)
+//
+// Recommended hardware: ath9k, ath5k, mt76 chipsets
+func scanPassive(ctx context.Context, interfaceName string, timeout int) ([]*discover.WirelessObservation, []int, error) {
+	// Delegate to platform-specific implementation
+	// Currently only Linux supports true passive scanning
+	return scanPassiveLinux(ctx, interfaceName, timeout, nil)
 }
 
 // isRunningAsRoot checks if the current process has root/administrator privileges.

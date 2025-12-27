@@ -20,7 +20,7 @@ types:
     DiscoverWapsResult:
         properties:
             scanMetadata: optional<ScanMetadata>
-            observations: optional<list<PassiveWirelessObservation>>
+            observations: optional<list<WirelessObservation>>
 
     DiscoverWapsReport:
         properties:
@@ -41,7 +41,7 @@ types:
     # =============================================================================
     # CORE OBSERVATION TYPE
     # =============================================================================
-    PassiveWirelessObservation:
+    WirelessObservation:
         properties:
             # Identity & Topology
             bssid: string

@@ -251,7 +251,7 @@ import (
 )
 
 // scanDarwin performs wireless scanning on macOS using CoreWLAN.
-func scanDarwin(ctx context.Context, interfaceName string, timeout int) ([]*discover.PassiveWirelessObservation, []int, error) {
+func scanDarwin(ctx context.Context, interfaceName string, timeout int) ([]*discover.WirelessObservation, []int, error) {
 	log := svc1log.FromContext(ctx)
 	log.Info("Starting macOS wireless scan using CoreWLAN")
 
@@ -324,8 +324,8 @@ func scanDarwin(ctx context.Context, interfaceName string, timeout int) ([]*disc
 }
 
 // convertCWScanResult converts C scan results to Go observations.
-func convertCWScanResult(result *C.CWScanResult) ([]*discover.PassiveWirelessObservation, []int) {
-	var observations []*discover.PassiveWirelessObservation
+func convertCWScanResult(result *C.CWScanResult) ([]*discover.WirelessObservation, []int) {
+	var observations []*discover.WirelessObservation
 	channelMap := make(map[int]bool)
 
 	if result.count == 0 || result.networks == nil {
@@ -353,8 +353,8 @@ func convertCWScanResult(result *C.CWScanResult) ([]*discover.PassiveWirelessObs
 	return observations, channels
 }
 
-// convertCWNetwork converts a single CWNetworkInfo to a PassiveWirelessObservation.
-func convertCWNetwork(network *C.CWNetworkInfo) *discover.PassiveWirelessObservation {
+// convertCWNetwork converts a single CWNetworkInfo to a WirelessObservation.
+func convertCWNetwork(network *C.CWNetworkInfo) *discover.WirelessObservation {
 	bssid := C.GoString(network.bssid)
 	ssidStr := C.GoString(network.ssid)
 
@@ -397,7 +397,7 @@ func convertCWNetwork(network *C.CWNetworkInfo) *discover.PassiveWirelessObserva
 	passiveOnly := false // CoreWLAN scan sends probes
 	beaconFrame := common.FrameTypeBeacon
 
-	return &discover.PassiveWirelessObservation{
+	return &discover.WirelessObservation{
 		Bssid:        bssid,
 		Ssid:         ssidPtr,
 		SsidLength:   ptr(len(ssidStr)),

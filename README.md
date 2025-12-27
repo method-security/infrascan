@@ -24,15 +24,19 @@ To learn more about infrascan, please see the [Documentation site](https://metho
 
 For the full list of available installation options, please see the [Installation](./docs/getting-started/installation.md) page. For convenience, here are some of the most commonly used options:
 
+- Download the latest binary from the [Github Releases](https://github.com/Method-Security/infrascan/releases/latest) page
 - `docker run methodsecurity/infrascan`
 - `docker run ghcr.io/method-security/infrascan`
-- Download the latest binary from the [Github Releases](https://github.com/Method-Security/infrascan/releases/latest) page
 - [Installation documentation](./docs/getting-started/installation.md)
+
+[!WARNING]
+Because many of the commands in `infrascan` directly use network interfaces it is highly reccommended to use the binary directly and not docker, whenever possible. It is possible to use Linux Docker on Linux, however various access must be granted and the setup is not easy.
 
 #### Examples
 
-TODO
-```bash
+```
+# Discover wireless access points
+infrascan discover waps --timeout 60
 ```
 
 ### Developer Setup
@@ -68,7 +72,7 @@ fern generate --group local
 
 6. OR run command without shell example: `docker run infrascan:local discover dns certs --domain example.com -o json`
 
-### Setting up Cursor / VSCode to properly lint Go files
+### (MacOS) Setting up Cursor / VSCode to properly lint Go files
 
 Because there is CGO used in this project, it can be tricky to get the linters to fully recognize some of the C based dependencies. This sets up Cursor to inherit your shell init (e.g. `.zshrc`).
 
