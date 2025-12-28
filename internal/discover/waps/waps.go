@@ -28,28 +28,26 @@ func DiscoverWaps(ctx context.Context, config discover.DiscoverWapsConfig) (*dis
 		timeout = *config.Timeout
 	}
 
-	passiveRequested := false
+	passive := false
 	if config.Passive != nil {
-		passiveRequested = *config.Passive
+		passive = *config.Passive
 	}
 
 	log.Info("Starting wireless access point discovery",
 		svc1log.SafeParam("interface", interfaceName),
 		svc1log.SafeParam("timeout", timeout),
-		svc1log.SafeParam("passive", passiveRequested),
+		svc1log.SafeParam("passive", passive),
 		svc1log.SafeParam("os", runtime.GOOS))
 
 	startTime := time.Now()
-	passiveMode := false
 
 	// Check if passive mode is requested
-	if passiveRequested {
-		passiveErr := checkPassiveModeSupport(ctx, interfaceName)
-		if passiveErr != nil {
+	if passive {
+		if err := checkPassiveModeSupport(ctx, interfaceName); err != nil {
 			log.Warn("Passive mode not available",
-				svc1log.SafeParam("error", passiveErr.Error()),
+				svc1log.SafeParam("error", err.Error()),
 				svc1log.SafeParam("os", runtime.GOOS))
-			errors = append(errors, passiveErr.Error())
+			errors = append(errors, err.Error())
 
 			// Return early with error - passive mode was explicitly requested but not available
 			endTime := time.Now()
@@ -59,14 +57,13 @@ func DiscoverWaps(ctx context.Context, config discover.DiscoverWapsConfig) (*dis
 					ScanMetadata: &discover.ScanMetadata{
 						StartTime:   &startTime,
 						EndTime:     &endTime,
-						PassiveMode: &passiveMode,
+						PassiveMode: ptr(false),
 					},
 					Observations: nil,
 				},
 				Errors: errors,
-			}, fmt.Errorf("passive mode requested but not available: %w", passiveErr)
+			}, fmt.Errorf("passive mode requested but not available: %w", err)
 		}
-		passiveMode = true
 	}
 
 	// Perform platform-specific scanning
@@ -74,7 +71,7 @@ func DiscoverWaps(ctx context.Context, config discover.DiscoverWapsConfig) (*dis
 	var channelsScanned []int
 	var scanErr error
 
-	if passiveMode {
+	if passive {
 		// Passive scanning - uses monitor mode packet capture
 		observations, channelsScanned, scanErr = scanPassive(ctx, interfaceName, timeout)
 	} else {
@@ -112,7 +109,7 @@ func DiscoverWaps(ctx context.Context, config discover.DiscoverWapsConfig) (*dis
 		StartTime:       &startTime,
 		EndTime:         &endTime,
 		ChannelsScanned: channelsScanned,
-		PassiveMode:     &passiveMode,
+		PassiveMode:     &passive,
 	}
 
 	// Create the report
