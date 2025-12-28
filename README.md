@@ -24,15 +24,19 @@ To learn more about infrascan, please see the [Documentation site](https://metho
 
 For the full list of available installation options, please see the [Installation](./docs/getting-started/installation.md) page. For convenience, here are some of the most commonly used options:
 
+- Download the latest binary from the [Github Releases](https://github.com/Method-Security/infrascan/releases/latest) page
 - `docker run methodsecurity/infrascan`
 - `docker run ghcr.io/method-security/infrascan`
-- Download the latest binary from the [Github Releases](https://github.com/Method-Security/infrascan/releases/latest) page
 - [Installation documentation](./docs/getting-started/installation.md)
+
+[!WARNING]
+Because many of the commands in `infrascan` directly use network interfaces it is highly reccommended to use the binary directly and not docker, whenever possible. It is possible to use Linux Docker on Linux, however various access must be granted and the setup is not easy.
 
 #### Examples
 
-TODO
-```bash
+```
+# Discover wireless access points
+infrascan discover waps --timeout 60
 ```
 
 ### Developer Setup
@@ -68,34 +72,26 @@ fern generate --group local
 
 6. OR run command without shell example: `docker run infrascan:local discover dns certs --domain example.com -o json`
 
-## Architecture
+### (MacOS) Setting up Cursor / VSCode to properly lint Go files
 
-### Wireless Scanning Modes
+Because there is CGO used in this project, it can be tricky to get the linters to fully recognize some of the C based dependencies. This sets up Cursor to inherit your shell init (e.g. `.zshrc`).
 
-The `discover waps` command supports two scanning modes:
-
-**Active Mode (default):** Uses platform-specific system utilities (`airport` on macOS, `iw`/`iwlist` on Linux, `netsh wlan` on Windows) to enumerate nearby networks. These tools emit probe requests, making the scanning device detectable to nearby wireless intrusion detection systems. This mode works out of the box without special privileges on most systems.
-
-**Passive Mode (`--passive`):** Intended for true zero-RF-emission scanning where the device only listens for beacon frames without transmitting. This mode requires:
-- A wireless interface configured in monitor mode
-- Elevated privileges (root on Linux/macOS, Administrator on Windows)
-- Platform-specific packet capture capabilities
-
-When passive mode is requested but requirements are not met, the command fails with a descriptive error explaining what's needed for the current platform.
-
-| Platform | Active Mode Tool | Passive Mode Requirements |
-|----------|-----------------|---------------------------|
-| Linux    | `iw dev <iface> scan` | Monitor mode interface (e.g., `wlan0mon`), root privileges, libpcap |
-| macOS    | `airport -s` | Root privileges, CoreWLAN with hardware support (limited availability) |
-| Windows  | `netsh wlan show networks` | Npcap with monitor mode, compatible wireless adapter |
-
-### Platform-Specific Build Tags
-
-The wireless access point discovery (`discover waps`) uses platform-specific system utilities to enumerate nearby networks. Because these tools and their output formats differ significantly between operating systems, the scanning logic is split into separate files using Go build tags (e.g., `//go:build darwin`). This ensures that only the relevant platform code is compiled into the final binary, keeping the executable lean and avoiding any cross-platform import issues.
-
-The main orchestration code in `waps.go` references all platform-specific scan functions (`scanDarwin`, `scanLinux`, `scanWindows`) in a runtime switch statement. Since Go's compiler requires all referenced functions to be defined at compile time—even if they're unreachable at runtime—we provide stub implementations for the non-target platforms. For example, when compiling on macOS, the `scanLinux` and `scanWindows` stubs return an error indicating they're unavailable. This pattern allows the codebase to compile cleanly on any platform while ensuring users get a clear error message if they somehow invoke the wrong code path.
-
-The same pattern applies to privilege checking functions (`isUnixRoot`, `isWindowsAdmin`) which are implemented differently per platform to check for the elevated privileges required by passive mode.
+To ensure linting is working:
+1. Setup Cursor shell command from inside Cursor (or Code):
+- Open Command Palette
+- Search for `Shell Command: Install (cursor) shell command` and run it
+- Close cursor
+2. Run Cursor from a terminal in this target repo folder with `cursor .`
+3. Fix your user settings to point to your proper go executable
+- take note of `which go`
+- Open user settings with Command Palette -> Preferences: Open User Settings (JSON)
+- Add:
+```
+"go.alternateTools": {
+    "go": <your go path here>
+}
+```
+4. Restart the Go Language Server
 
 ## Contributing
 

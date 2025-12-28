@@ -1,0 +1,115 @@
+# Common Wireless 802.11 Enums and Types
+
+types:
+    FrequencyBand:
+        enum:
+            - BAND_2_4_GHZ
+            - BAND_5_GHZ
+            - BAND_6_GHZ
+            - BAND_UNKNOWN
+
+    ChannelWidth:
+        enum:
+            - WIDTH_20_MHZ
+            - WIDTH_40_MHZ
+            - WIDTH_80_MHZ
+            - WIDTH_160_MHZ
+            - WIDTH_320_MHZ
+            - WIDTH_UNKNOWN
+
+    AuthenticationMethod:
+        enum:
+            - OPEN
+            - SHARED_KEY
+            - SAE
+            - FT_SAE
+            - EAP
+            - FT_EAP
+            - EAP_SHA256
+            - EAP_SHA384
+            - FILS_SHA256
+            - FILS_SHA384
+            - OWE
+            - UNKNOWN
+
+    EncryptionProtocol:
+        enum:
+            - NONE
+            - WEP
+            - TKIP
+            - CCMP
+            - GCMP
+            - CCMP_256
+            - GCMP_256
+            - UNKNOWN
+
+    CipherSuite:
+        enum:
+            - WEP_40
+            - WEP_104
+            - TKIP
+            - CCMP_128
+            - CCMP_256
+            - GCMP_128
+            - GCMP_256
+            - BIP_CMAC_128
+            - BIP_GMAC_128
+            - BIP_GMAC_256
+            - BIP_CMAC_256
+            - UNKNOWN
+
+    KeyManagementType:
+        enum:
+            - PSK
+            - EAP_802_1X
+            - FT_PSK
+            - FT_EAP
+            - PSK_SHA256
+            - EAP_SHA256
+            - SAE
+            - FT_SAE
+            - EAP_SUITE_B
+            - EAP_SUITE_B_192
+            - FILS_SHA256
+            - FILS_SHA384
+            - FT_FILS_SHA256
+            - FT_FILS_SHA384
+            - OWE
+            - UNKNOWN
+
+    WpaVersion:
+        enum:
+            - WPA1
+            - WPA2
+            - WPA3
+            - WPA2_WPA3_MIXED
+            - UNKNOWN
+
+    PmfPolicy:
+        enum:
+            - DISABLED
+            - OPTIONAL
+            - REQUIRED
+            - UNKNOWN
+
+    WifiGeneration:
+        enum:
+            - WIFI_4
+            - WIFI_5
+            - WIFI_6
+            - WIFI_6E
+            - WIFI_7
+            - LEGACY
+            - UNKNOWN
+
+    FrameType:
+        enum:
+            - BEACON
+            - PROBE_RESPONSE
+            - ASSOCIATION_REQUEST
+            - ASSOCIATION_RESPONSE
+            - AUTHENTICATION
+            - DEAUTHENTICATION
+            - DISASSOCIATION
+            - ACTION
+            - UNKNOWN

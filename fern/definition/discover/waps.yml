@@ -1,0 +1,155 @@
+# Passive Wireless Access Point Discovery
+# The observation and extraction of 802.11 management-frame metadata from beacon
+# and unsolicited probe response frames without emitting RF transmissions.
+
+imports:
+    wireless: ../common/wireless.yml
+
+types:
+    # =============================================================================
+    # CONFIG, RESULT, REPORT STRUCTS (Top-Level API Pattern)
+    # =============================================================================
+    DiscoverWapsConfig:
+        properties:
+            interface: optional<string>
+            targetSsid: optional<string>
+            timeout: optional<integer>
+            channels: optional<list<integer>>
+            passive: optional<boolean>
+
+    DiscoverWapsResult:
+        properties:
+            scanMetadata: optional<ScanMetadata>
+            observations: optional<list<WirelessObservation>>
+
+    DiscoverWapsReport:
+        properties:
+            config: DiscoverWapsConfig
+            result: DiscoverWapsResult
+            errors: optional<list<string>>
+
+    # =============================================================================
+    # SCAN METADATA
+    # =============================================================================
+    ScanMetadata:
+        properties:
+            startTime: optional<datetime>
+            endTime: optional<datetime>
+            channelsScanned: optional<list<integer>>
+            passiveMode: optional<boolean>
+
+    # =============================================================================
+    # CORE OBSERVATION TYPE
+    # =============================================================================
+    WirelessObservation:
+        properties:
+            # Identity & Topology
+            bssid: string
+            transmitterMac: optional<string>
+            ssid: optional<string>
+            ssidLength: optional<integer>
+            isHiddenSsid: optional<boolean>
+            # Radio Characteristics
+            radioCharacteristics: optional<RadioCharacteristics>
+            # Security Configuration
+            securityConfiguration: optional<SecurityConfiguration>
+            # Protocol Capabilities
+            protocolCapabilities: optional<ProtocolCapabilities>
+            # Vendor Fingerprinting
+            vendorFingerprint: optional<VendorFingerprint>
+            # Temporal Signals
+            temporalSignals: optional<TemporalSignals>
+            # Observation Metadata
+            observationMetadata: optional<ObservationMetadata>
+
+    # =============================================================================
+    # RADIO CHARACTERISTICS
+    # =============================================================================
+    RadioCharacteristics:
+        properties:
+            channel: optional<integer>
+            frequencyMhz: optional<integer>
+            band: optional<wireless.FrequencyBand>
+            channelWidth: optional<wireless.ChannelWidth>
+            rssi: optional<integer>
+            noiseFloor: optional<integer>
+            beaconIntervalMs: optional<integer>
+            supportedRates: optional<list<double>>
+
+    # =============================================================================
+    # SECURITY CONFIGURATION
+    # =============================================================================
+    SecurityConfiguration:
+        properties:
+            authenticationMethod: optional<wireless.AuthenticationMethod>
+            encryptionProtocol: optional<wireless.EncryptionProtocol>
+            pairwiseCipherSuites: optional<list<wireless.CipherSuite>>
+            groupCipherSuite: optional<wireless.CipherSuite>
+            keyManagement: optional<list<wireless.KeyManagementType>>
+            wpaVersion: optional<wireless.WpaVersion>
+            pmfPolicy: optional<wireless.PmfPolicy>
+            isOweTransitionMode: optional<boolean>
+            isOpenNetwork: optional<boolean>
+            isWepEnabled: optional<boolean>
+
+    # =============================================================================
+    # PROTOCOL CAPABILITIES
+    # =============================================================================
+    ProtocolCapabilities:
+        properties:
+            wifiGeneration: optional<wireless.WifiGeneration>
+            supports80211n: optional<boolean>
+            supports80211ac: optional<boolean>
+            supports80211ax: optional<boolean>
+            supports80211be: optional<boolean>
+            muMimoSupport: optional<boolean>
+            ofdmaSupport: optional<boolean>
+            maxSpatialStreams: optional<integer>
+            twtSupport: optional<boolean>
+            fastBssTransition: optional<boolean>
+            neighborReportsEnabled: optional<boolean>
+
+    # =============================================================================
+    # VENDOR FINGERPRINTING
+    # =============================================================================
+    VendorFingerprint:
+        properties:
+            oui: optional<string>
+            vendorName: optional<string>
+            vendorSpecificIes: optional<list<VendorSpecificIe>>
+            beaconOrdering: optional<string>
+
+    VendorSpecificIe:
+        properties:
+            ouiBytes: string
+            vendorType: optional<integer>
+            dataHex: optional<string>
+
+    # =============================================================================
+    # TEMPORAL & BEHAVIORAL SIGNALS
+    # =============================================================================
+    TemporalSignals:
+        properties:
+            firstSeen: optional<datetime>
+            lastSeen: optional<datetime>
+            beaconCount: optional<integer>
+            beaconJitterMs: optional<double>
+            estimatedUptimeSeconds: optional<long>
+            channelChanges: optional<list<ChannelChange>>
+
+    ChannelChange:
+        properties:
+            timestamp: datetime
+            fromChannel: integer
+            toChannel: integer
+
+    # =============================================================================
+    # OBSERVATION METADATA
+    # =============================================================================
+    ObservationMetadata:
+        properties:
+            timestamp: optional<datetime>
+            passiveOnly: optional<boolean>
+            confidenceScore: optional<double>
+            frameTypes: optional<list<wireless.FrameType>>
+            rawBeaconCount: optional<integer>

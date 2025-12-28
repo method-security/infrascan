@@ -1,0 +1,5 @@
+name: infrascan
+
+imports:
+    wireless: common/wireless.yml
+    discover: discover/waps.yml
