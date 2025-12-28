@@ -78,10 +78,10 @@ access points. It extracts information from beacon frames including:
 			report, err := wapsDiscover.DiscoverWaps(cmd.Context(), config)
 			if err != nil {
 				a.OutputSignal.AddError(err)
-				return
 			}
-
-			a.OutputSignal.Content = report
+			if report != nil {
+				a.OutputSignal.Content = report
+			}
 		},
 	}
 
