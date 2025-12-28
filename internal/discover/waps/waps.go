@@ -59,7 +59,7 @@ func DiscoverWaps(ctx context.Context, config discover.DiscoverWapsConfig) (*dis
 						EndTime:     &endTime,
 						PassiveMode: ptr(false),
 					},
-					Observations: nil,
+					Observations: []*discover.WirelessObservation{},
 				},
 				Errors: errors,
 			}, fmt.Errorf("passive mode requested but not available: %w", err)
@@ -67,7 +67,7 @@ func DiscoverWaps(ctx context.Context, config discover.DiscoverWapsConfig) (*dis
 	}
 
 	// Perform platform-specific scanning
-	var observations []*discover.WirelessObservation
+	observations := []*discover.WirelessObservation{}
 	var channelsScanned []int
 	var scanErr error
 
@@ -113,11 +113,16 @@ func DiscoverWaps(ctx context.Context, config discover.DiscoverWapsConfig) (*dis
 	}
 
 	// Create the report
+	finalObservations := observations
+	if finalObservations == nil {
+		finalObservations = []*discover.WirelessObservation{}
+	}
+
 	report := &discover.DiscoverWapsReport{
 		Config: &config,
 		Result: &discover.DiscoverWapsResult{
 			ScanMetadata: scanMetadata,
-			Observations: observations,
+			Observations: finalObservations,
 		},
 		Errors: errors,
 	}
