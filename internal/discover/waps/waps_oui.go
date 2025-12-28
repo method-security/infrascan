@@ -6,6 +6,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/Method-Security/infrascan/configs"
 	"github.com/Method-Security/infrascan/utils"
 )
 
@@ -30,7 +31,9 @@ func lookupOUI(oui string) *string {
 	return nil
 }
 
-// getOUIDatabase loads and caches the OUI database
+// getOUIDatabase loads and caches the OUI database.
+// It first checks for a filesystem override (useful for custom/updated databases),
+// then falls back to the embedded database bundled with the binary.
 func getOUIDatabase() (map[string]string, error) {
 	ouiDatabaseLock.RLock()
 	if ouiDatabase != nil {
@@ -46,12 +49,20 @@ func getOUIDatabase() (map[string]string, error) {
 		return ouiDatabase, nil
 	}
 
+	var data []byte
+	var err error
+
+	// First, try to load from filesystem (allows overrides)
 	resolver := utils.GetDefaultConfigFileResolver()
 	filePath := resolver.GetConfigFilePath("discover/waps/oui_database.json")
+	data, err = os.ReadFile(filePath)
 
-	data, err := os.ReadFile(filePath)
+	// If filesystem read fails, use the embedded database
 	if err != nil {
-		return nil, fmt.Errorf("failed to read OUI database: %w", err)
+		data, err = configs.EmbeddedConfigs.ReadFile("discover/waps/oui_database.json")
+		if err != nil {
+			return nil, fmt.Errorf("failed to read OUI database (embedded): %w", err)
+		}
 	}
 
 	var db map[string]string

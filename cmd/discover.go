@@ -25,6 +25,8 @@ func (a *Infrascan) InitDiscoverCommand() {
 		Short: "Discover wireless access points",
 		Long: `Discover and enumerate wireless access points in the environment.
 
+Running this command as root will lead to better outcomes (richer data) on Linux.
+
 This command performs 802.11 reconnaissance to discover nearby wireless
 access points. It extracts information from beacon frames including:
 
