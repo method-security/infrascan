@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/Method-Security/infrascan/generated/go/associate"
+	"github.com/Method-Security/infrascan/generated/go/connect"
 )
 
 // findWirelessInterface is not supported on this platform.
@@ -36,7 +36,7 @@ func disconnectFromNetwork(ctx context.Context, interfaceName string) error {
 }
 
 // reconnectToOriginalNetwork is not supported on this platform.
-func reconnectToOriginalNetwork(ctx context.Context, interfaceName string, original *associate.OriginalNetworkState) error {
+func reconnectToOriginalNetwork(ctx context.Context, interfaceName string, original *connect.OriginalNetworkState) error {
 	return fmt.Errorf("wireless operations not supported on %s", runtime.GOOS)
 }
 
@@ -46,11 +46,11 @@ func connectToNetwork(
 	interfaceName string,
 	targetSSID string,
 	targetBSSID string,
-	cred *associate.TestClientProfile,
+	cred *connect.TestClientProfile,
 	timeout int,
 ) *ConnectionResult {
 	result := NewConnectionResult()
-	result.WithError(associate.AssociationOutcomeDriverError,
+	result.WithError(connect.ConnectionOutcomeDriverError,
 		fmt.Sprintf("wireless operations not supported on %s", runtime.GOOS))
 	return result
 }
@@ -59,4 +59,3 @@ func connectToNetwork(
 func detectNetworkSecurity(ctx context.Context, interfaceName string, targetSSID string, targetBSSID string) NetworkSecurityType {
 	return NetworkSecurityUnknown
 }
-

@@ -164,7 +164,7 @@ func getSignalQuality(ctx context.Context, interfaceName string, targetSSID stri
 			signalRegex := regexp.MustCompile(`signal: (-?\d+) dBm`)
 			if match := signalRegex.FindStringSubmatch(string(output)); len(match) > 1 {
 				var rssi int
-				fmt.Sscanf(match[1], "%d", &rssi)
+				_, _ = fmt.Sscanf(match[1], "%d", &rssi)
 				return rssi
 			}
 		}
@@ -179,7 +179,7 @@ func getSignalQuality(ctx context.Context, interfaceName string, targetSSID stri
 			parts := strings.Split(line, ":")
 			if len(parts) >= 2 && parts[0] == targetSSID {
 				var signal int
-				fmt.Sscanf(parts[1], "%d", &signal)
+				_, _ = fmt.Sscanf(parts[1], "%d", &signal)
 				// Convert percentage to approximate dBm
 				return -100 + (signal * 70 / 100)
 			}
@@ -323,7 +323,7 @@ func reconnectToOriginalNetwork(ctx context.Context, interfaceName string, origi
 // These may be left behind if a previous run crashed or was interrupted.
 func cleanupStaleTestProfiles(ctx context.Context) {
 	log := svc1log.FromContext(ctx)
-	
+
 	cmd := exec.Command("nmcli", "-t", "-f", "NAME", "connection", "show")
 	output, err := cmd.Output()
 	if err != nil {
@@ -452,18 +452,18 @@ func connectToNetwork(
 	// If connection succeeded, get additional info (unless already done)
 	// Note: connectWithWpaSupplicantNoNetworkManager does DHCP internally because it needs
 	// to complete before restoring NetworkManager control. Other paths do DHCP here.
-	if result.Outcome == connect.ConnectionOutcomeSuccess && result.IpAcquired == nil {
+	if result.Outcome == connect.ConnectionOutcomeSuccess && result.IPAcquired == nil {
 		// Get DHCP info
 		ipAcquired, ip, gateway, dns := waitForDHCPLinux(ctx, iface, timeout)
-		result.IpAcquired = &ipAcquired
+		result.IPAcquired = &ipAcquired
 		if ip != "" {
-			result.IpAddress = &ip
+			result.IPAddress = &ip
 		}
 		if gateway != "" {
 			result.Gateway = &gateway
 		}
 		if len(dns) > 0 {
-			result.DnsServers = dns
+			result.DNSServers = dns
 		}
 
 		// Check for captive portal
@@ -471,7 +471,7 @@ func connectToNetwork(
 			portalDetected, portalURL := detectCaptivePortalLinux(ctx)
 			result.PortalDetected = &portalDetected
 			if portalURL != "" {
-				result.PortalUrl = &portalURL
+				result.PortalURL = &portalURL
 			}
 		}
 	}
@@ -511,7 +511,7 @@ func connectWithNmcli(ctx context.Context, iface, ssid, bssid, password string, 
 			"ssid", ssid,
 			"wifi-sec.key-mgmt", "wpa-psk",
 			"wifi-sec.psk", password,
-			"wifi-sec.psk-flags", "0",    // Store in profile, don't use secret agent
+			"wifi-sec.psk-flags", "0", // Store in profile, don't use secret agent
 			"connection.autoconnect", "no", // Don't auto-retry on failure
 		}
 	} else {
@@ -722,7 +722,7 @@ func connectWithNmcliEAP(ctx context.Context, iface, ssid, identity, password st
 	eapMethod := connect.EapMethodPeap
 	negSec.EapMethod = &eapMethod
 	authMethod := common.AuthenticationMethodEap
-	negSec.AuthenticationMethod = (*common.AuthenticationMethod)(&authMethod)
+	negSec.AuthenticationMethod = &authMethod
 	result.NegotiatedSecurity = negSec
 	result.EapMethodNegotiated = &eapMethod
 
@@ -920,7 +920,7 @@ func connectWithWpaSupplicant(ctx context.Context, iface, ssid, password string,
 		result.WithError(connect.ConnectionOutcomeDriverError, fmt.Sprintf("Failed to create config: %v", err))
 		return result
 	}
-	defer os.Remove(configFile.Name())
+	defer func() { _ = os.Remove(configFile.Name()) }()
 
 	ctrlInterface := fmt.Sprintf("/tmp/wpa_supplicant_%s", iface)
 
@@ -946,7 +946,7 @@ network={
 		result.WithError(connect.ConnectionOutcomeDriverError, fmt.Sprintf("Failed to write config: %v", err))
 		return result
 	}
-	configFile.Close()
+	_ = configFile.Close()
 
 	// Run wpa_supplicant in background but capture initial output
 	log.Debug("Starting wpa_supplicant", svc1log.SafeParam("iface", iface), svc1log.SafeParam("ssid", ssid))
@@ -1088,15 +1088,15 @@ network={
 					if doDHCP {
 						log.Info("Acquiring DHCP lease while wpa_supplicant is running")
 						ipAcquired, ip, gateway, dns := waitForDHCPLinux(ctx, iface, timeout)
-						result.IpAcquired = &ipAcquired
+						result.IPAcquired = &ipAcquired
 						if ip != "" {
-							result.IpAddress = &ip
+							result.IPAddress = &ip
 						}
 						if gateway != "" {
 							result.Gateway = &gateway
 						}
 						if len(dns) > 0 {
-							result.DnsServers = dns
+							result.DNSServers = dns
 						}
 
 						// Check for captive portal
@@ -1104,7 +1104,7 @@ network={
 							portalDetected, portalURL := detectCaptivePortalLinux(ctx)
 							result.PortalDetected = &portalDetected
 							if portalURL != "" {
-								result.PortalUrl = &portalURL
+								result.PortalURL = &portalURL
 							}
 
 							// Test platform connectivity if URL is provided via context
@@ -1334,55 +1334,20 @@ func getSecurityInfoNmcli(ctx context.Context, ssid string) *connect.NegotiatedS
 	outputStr := string(output)
 	if strings.Contains(outputStr, "WPA3") {
 		wpaVer := common.WpaVersionWpa3
-		negSec.WpaVersion = (*common.WpaVersion)(&wpaVer)
+		negSec.WpaVersion = &wpaVer
 		authMethod := common.AuthenticationMethodSae
-		negSec.AuthenticationMethod = (*common.AuthenticationMethod)(&authMethod)
+		negSec.AuthenticationMethod = &authMethod
 		pmf := true
 		negSec.PmfNegotiated = &pmf
 	} else if strings.Contains(outputStr, "WPA2") {
 		wpaVer := common.WpaVersionWpa2
-		negSec.WpaVersion = (*common.WpaVersion)(&wpaVer)
+		negSec.WpaVersion = &wpaVer
 	} else if strings.Contains(outputStr, "WPA") {
 		wpaVer := common.WpaVersionWpa1
-		negSec.WpaVersion = (*common.WpaVersion)(&wpaVer)
+		negSec.WpaVersion = &wpaVer
 	}
 
 	return negSec
-}
-
-// waitForCarrier waits for the interface to have carrier (link up).
-// This is needed after wpa_supplicant connects because there can be a delay
-// before the kernel reports carrier status.
-func waitForCarrier(ctx context.Context, iface string, timeout time.Duration) bool {
-	log := svc1log.FromContext(ctx)
-	deadline := time.Now().Add(timeout)
-
-	for time.Now().Before(deadline) {
-		// Check carrier status via /sys/class/net/<iface>/carrier
-		carrierPath := fmt.Sprintf("/sys/class/net/%s/carrier", iface)
-		data, err := os.ReadFile(carrierPath)
-		if err == nil && strings.TrimSpace(string(data)) == "1" {
-			log.Debug("Interface has carrier", svc1log.SafeParam("iface", iface))
-			return true
-		}
-
-		// Also check operstate
-		operstatePath := fmt.Sprintf("/sys/class/net/%s/operstate", iface)
-		data, err = os.ReadFile(operstatePath)
-		if err == nil {
-			state := strings.TrimSpace(string(data))
-			if state == "up" {
-				log.Debug("Interface operstate is up", svc1log.SafeParam("iface", iface))
-				return true
-			}
-			log.Debug("Interface operstate", svc1log.SafeParam("iface", iface), svc1log.SafeParam("state", state))
-		}
-
-		time.Sleep(500 * time.Millisecond)
-	}
-
-	log.Warn("Timeout waiting for carrier", svc1log.SafeParam("iface", iface))
-	return false
 }
 
 // triggerDHCP starts a DHCP client on the interface.
@@ -1660,17 +1625,18 @@ func detectCaptivePortalLinux(ctx context.Context) (detected bool, portalURL str
 		if err != nil {
 			continue
 		}
-		defer resp.Body.Close()
 
 		// Redirect indicates captive portal
 		if resp.StatusCode == http.StatusFound || resp.StatusCode == http.StatusMovedPermanently {
 			location := resp.Header.Get("Location")
+			_ = resp.Body.Close()
 			return true, location
 		}
 
 		// Check response
 		if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusOK {
 			body, _ := io.ReadAll(resp.Body)
+			_ = resp.Body.Close()
 			// Firefox returns "success"
 			if strings.Contains(string(body), "success") || len(body) == 0 {
 				return false, ""
@@ -1678,6 +1644,7 @@ func detectCaptivePortalLinux(ctx context.Context) (detected bool, portalURL str
 			// Unexpected content might be a portal
 			return true, ""
 		}
+		_ = resp.Body.Close()
 	}
 
 	log.Debug("Captive portal check completed - no portal detected")
@@ -1832,4 +1799,3 @@ func parseIwScanForSecurity(output string, targetSSID string, targetBSSID string
 
 	return NetworkSecurityUnknown
 }
-

@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Method-Security/infrascan/generated/go/associate"
 	"github.com/Method-Security/infrascan/generated/go/common"
+	"github.com/Method-Security/infrascan/generated/go/connect"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 )
 
@@ -177,7 +177,7 @@ func disconnectFromNetwork(ctx context.Context, interfaceName string) error {
 }
 
 // reconnectToOriginalNetwork reconnects to the original WiFi network on Windows.
-func reconnectToOriginalNetwork(ctx context.Context, interfaceName string, original *associate.OriginalNetworkState) error {
+func reconnectToOriginalNetwork(ctx context.Context, interfaceName string, original *connect.OriginalNetworkState) error {
 	if original == nil || !original.WasConnected {
 		return nil
 	}
@@ -229,7 +229,7 @@ func connectToNetwork(
 	interfaceName string,
 	targetSSID string,
 	targetBSSID string,
-	cred *associate.TestClientProfile,
+	cred *connect.TestClientProfile,
 	timeout int,
 ) *ConnectionResult {
 	log := svc1log.FromContext(ctx)
@@ -240,46 +240,46 @@ func connectToNetwork(
 		var err error
 		iface, err = findWirelessInterface(ctx)
 		if err != nil {
-			result.WithError(associate.AssociationOutcomeInterfaceError, err.Error())
+			result.WithError(connect.ConnectionOutcomeInterfaceError, err.Error())
 			return result
 		}
 	}
 
 	switch cred.CredentialType {
-	case associate.TestCredentialTypeNone:
+	case connect.TestCredentialTypeNone:
 		// Open network connection
 		result = connectWithNetsh(ctx, iface, targetSSID, "", timeout)
 
-	case associate.TestCredentialTypePskSimple, associate.TestCredentialTypePskCommon:
+	case connect.TestCredentialTypePskSimple, connect.TestCredentialTypePskCommon:
 		// PSK connection
 		if cred.Psk == nil || *cred.Psk == "" {
-			result.WithError(associate.AssociationOutcomeAuthFailed, "PSK credential required but not provided")
+			result.WithError(connect.ConnectionOutcomeAuthFailed, "PSK credential required but not provided")
 			return result
 		}
 		result = connectWithNetsh(ctx, iface, targetSSID, *cred.Psk, timeout)
 
-	case associate.TestCredentialTypeEapTestIdentity, associate.TestCredentialTypeEapGuest:
+	case connect.TestCredentialTypeEapTestIdentity, connect.TestCredentialTypeEapGuest:
 		// EAP connection - requires profile creation
 		log.Warn("EAP connection on Windows requires pre-configured profiles")
-		result.WithError(associate.AssociationOutcomeDriverError, "EAP connection requires pre-configured Windows profiles")
+		result.WithError(connect.ConnectionOutcomeDriverError, "EAP connection requires pre-configured Windows profiles")
 
 	default:
-		result.WithError(associate.AssociationOutcomeUnknownError, fmt.Sprintf("unsupported credential type: %s", cred.CredentialType))
+		result.WithError(connect.ConnectionOutcomeUnknownError, fmt.Sprintf("unsupported credential type: %s", cred.CredentialType))
 	}
 
 	// If connection succeeded, get additional info
-	if result.Outcome == associate.AssociationOutcomeSuccess {
+	if result.Outcome == connect.ConnectionOutcomeSuccess {
 		// Get DHCP info
 		ipAcquired, ip, gateway, dns := waitForDHCPWindows(ctx, iface, timeout)
-		result.IpAcquired = &ipAcquired
+		result.IPAcquired = &ipAcquired
 		if ip != "" {
-			result.IpAddress = &ip
+			result.IPAddress = &ip
 		}
 		if gateway != "" {
 			result.Gateway = &gateway
 		}
 		if len(dns) > 0 {
-			result.DnsServers = dns
+			result.DNSServers = dns
 		}
 
 		// Check for captive portal
@@ -287,7 +287,7 @@ func connectToNetwork(
 			portalDetected, portalURL := detectCaptivePortalWindows(ctx)
 			result.PortalDetected = &portalDetected
 			if portalURL != "" {
-				result.PortalUrl = &portalURL
+				result.PortalURL = &portalURL
 			}
 		}
 	}
@@ -306,7 +306,7 @@ func connectWithNetsh(ctx context.Context, iface, ssid, password string, timeout
 	if !profileExists {
 		// Create temporary profile
 		if err := createWlanProfile(ssid, password); err != nil {
-			result.WithError(associate.AssociationOutcomeDriverError, fmt.Sprintf("Failed to create profile: %v", err))
+			result.WithError(connect.ConnectionOutcomeDriverError, fmt.Sprintf("Failed to create profile: %v", err))
 			return result
 		}
 		defer deleteWlanProfile(ssid)
@@ -326,9 +326,9 @@ func connectWithNetsh(ctx context.Context, iface, ssid, password string, timeout
 		if timeoutCtx.Err() == context.DeadlineExceeded {
 			result.WithTimeout("Connection timed out")
 		} else if strings.Contains(outputStr, "is not visible") {
-			result.WithError(associate.AssociationOutcomeNetworkNotFound, "Network not found")
+			result.WithError(connect.ConnectionOutcomeNetworkNotFound, "Network not found")
 		} else {
-			result.WithError(associate.AssociationOutcomeAssocFailed, outputStr)
+			result.WithError(connect.ConnectionOutcomeAssocFailed, outputStr)
 		}
 		return result
 	}
@@ -353,7 +353,7 @@ func connectWithNetsh(ctx context.Context, iface, ssid, password string, timeout
 		if strings.Contains(string(output), "Authentication") {
 			result.WithAuthFailed("Authentication failed")
 		} else {
-			result.WithError(associate.AssociationOutcomeAssocFailed, "Connection not established")
+			result.WithError(connect.ConnectionOutcomeAssocFailed, "Connection not established")
 		}
 	}
 
@@ -438,14 +438,14 @@ func deleteWlanProfile(ssid string) {
 }
 
 // getSecurityInfoWindows retrieves negotiated security info on Windows.
-func getSecurityInfoWindows(ctx context.Context, iface string) *associate.NegotiatedSecurity {
+func getSecurityInfoWindows(ctx context.Context, iface string) *connect.NegotiatedSecurity {
 	cmd := exec.Command("netsh", "wlan", "show", "interfaces")
 	output, err := cmd.Output()
 	if err != nil {
 		return nil
 	}
 
-	negSec := &associate.NegotiatedSecurity{}
+	negSec := &connect.NegotiatedSecurity{}
 	outputStr := string(output)
 
 	// Parse authentication type
@@ -694,4 +694,3 @@ func parseWindowsAuthType(auth string) NetworkSecurityType {
 
 	return NetworkSecurityUnknown
 }
-

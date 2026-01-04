@@ -779,9 +779,12 @@ func detectNetworkSecurity(ctx context.Context, interfaceName string, targetSSID
 		return NetworkSecurityUnknown
 	}
 
+	// Convert C array pointer to Go slice for safe iteration
+	networks := unsafe.Slice(scanResult.networks, int(scanResult.count))
+
 	// Parse scan results to find target network
-	for i := C.int(0); i < scanResult.count; i++ {
-		network := scanResult.networks[i]
+	for i := 0; i < int(scanResult.count); i++ {
+		network := networks[i]
 		ssid := C.GoString(network.ssid)
 		bssid := strings.ToUpper(C.GoString(network.bssid))
 
@@ -823,4 +826,3 @@ func detectNetworkSecurity(ctx context.Context, interfaceName string, targetSSID
 		svc1log.SafeParam("target_bssid", targetBSSID))
 	return NetworkSecurityUnknown
 }
-

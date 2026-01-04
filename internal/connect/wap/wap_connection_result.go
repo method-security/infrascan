@@ -1,30 +1,32 @@
 package wap
 
-import "github.com/Method-Security/infrascan/generated/go/connect"
+import (
+	"github.com/Method-Security/infrascan/generated/go/connect"
+)
 
 // ConnectionResult holds the result of a connection attempt.
 // This is populated by platform-specific code.
 type ConnectionResult struct {
-	Outcome            connect.ConnectionOutcome
-	AssociationStatusCode         *connect.AssociationStatusCode
-	AssociationStatusCodeRaw      *int
+	Outcome                  connect.ConnectionOutcome
+	AssociationStatusCode    *connect.AssociationStatusCode
+	AssociationStatusCodeRaw *int
 	DeauthReasonCode         *connect.DeauthReasonCode
 	DeauthReasonCodeRaw      *int
-	HandshakeProgress  *connect.HandshakeProgress
-	Timing             *connect.ConnectionTiming
-	RetryCount         *int
-	AttemptedSecurity  *connect.NegotiatedSecurity
-	NegotiatedSecurity *connect.NegotiatedSecurity
-	IpAcquired         *bool
-	IpAddress          *string
-	DhcpServer         *string
-	Gateway            *string
-	DnsServers         []string
-	PortalDetected     *bool
-	PortalUrl          *string
-	EapMethodNegotiated *connect.EapMethod
-	ErrorMessage       *string
-	PlatformConnectivity *connect.PlatformConnectivityResult
+	HandshakeProgress        *connect.HandshakeProgress
+	Timing                   *connect.ConnectionTiming
+	RetryCount               *int
+	AttemptedSecurity        *connect.NegotiatedSecurity
+	NegotiatedSecurity       *connect.NegotiatedSecurity
+	IPAcquired               *bool
+	IPAddress                *string
+	DhcpServer               *string
+	Gateway                  *string
+	DNSServers               []string
+	PortalDetected           *bool
+	PortalURL                *string
+	EapMethodNegotiated      *connect.EapMethod
+	ErrorMessage             *string
+	PlatformConnectivity     *connect.PlatformConnectivityResult
 }
 
 // NewConnectionResult creates a new ConnectionResult with default values.
@@ -60,4 +62,3 @@ func (r *ConnectionResult) WithError(outcome connect.ConnectionOutcome, msg stri
 	r.ErrorMessage = &msg
 	return r
 }
-

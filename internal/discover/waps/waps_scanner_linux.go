@@ -152,8 +152,8 @@ func scanAsUser(ctx context.Context, log svc1log.Logger, interfaceName string, t
 	}
 
 	// Fall back to iwlist
-		observations, channels, err = scanWithIwlist(ctx, interfaceName, timeout)
-		if err != nil {
+	observations, channels, err = scanWithIwlist(ctx, interfaceName, timeout)
+	if err != nil {
 		return nil, nil, fmt.Errorf("wireless scan failed (all methods exhausted): %w", err)
 	}
 

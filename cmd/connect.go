@@ -145,18 +145,18 @@ obtained or owned, it can secondarily be used to test the validity of those cred
 			var testCredentials []*connectFern.TestClientProfile
 			if testPSK != "" {
 				credType := connectFern.TestCredentialTypePskSimple
-				profileId := "cli-psk"
+				profileID := "cli-psk"
 				testCredentials = append(testCredentials, &connectFern.TestClientProfile{
-					ProfileId:      profileId,
+					ProfileId:      profileID,
 					CredentialType: credType,
 					Psk:            &testPSK,
 				})
 			}
 			if testEAPIdentity != "" {
 				credType := connectFern.TestCredentialTypeEapTestIdentity
-				profileId := "cli-eap"
+				profileID := "cli-eap"
 				testCredentials = append(testCredentials, &connectFern.TestClientProfile{
-					ProfileId:      profileId,
+					ProfileId:      profileID,
 					CredentialType: credType,
 					EapIdentity:    &testEAPIdentity,
 					EapPassword:    &testEAPPassword,
@@ -223,4 +223,3 @@ obtained or owned, it can secondarily be used to test the validity of those cred
 	// Add connect command to root
 	a.RootCmd.AddCommand(connectCmd)
 }
-

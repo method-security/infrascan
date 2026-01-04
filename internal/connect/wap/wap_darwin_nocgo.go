@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/Method-Security/infrascan/generated/go/associate"
+	"github.com/Method-Security/infrascan/generated/go/connect"
 )
 
 // findWirelessInterface finds the default wireless interface on macOS without CGO.
@@ -115,7 +115,7 @@ func disconnectFromNetwork(ctx context.Context, interfaceName string) error {
 }
 
 // reconnectToOriginalNetwork reconnects to the original WiFi network without CGO.
-func reconnectToOriginalNetwork(ctx context.Context, interfaceName string, original *associate.OriginalNetworkState) error {
+func reconnectToOriginalNetwork(ctx context.Context, interfaceName string, original *connect.OriginalNetworkState) error {
 	if original == nil || !original.WasConnected {
 		return nil
 	}
@@ -143,11 +143,11 @@ func connectToNetwork(
 	interfaceName string,
 	targetSSID string,
 	targetBSSID string,
-	cred *associate.TestClientProfile,
+	cred *connect.TestClientProfile,
 	timeout int,
 ) *ConnectionResult {
 	result := NewConnectionResult()
-	result.WithError(associate.AssociationOutcomeDriverError,
+	result.WithError(connect.ConnectionOutcomeDriverError,
 		"Direct WiFi connection requires CGO on macOS. Please build with CGO enabled.")
 	return result
 }
@@ -226,4 +226,3 @@ func parseAirportSecurityType(security string) NetworkSecurityType {
 
 	return NetworkSecurityUnknown
 }
-

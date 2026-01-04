@@ -223,7 +223,7 @@ func ValidateConnection(ctx context.Context, config connect.ValidateConnectionCo
 	if originalNetwork.WasConnected {
 		log.Info("Currently connected to WiFi, will restore after validation",
 			svc1log.SafeParam("original_ssid", ptrStr(originalNetwork.Ssid)))
-		
+
 		// Disconnect from current network before testing
 		log.Info("Disconnecting from current network for validation")
 		if err := disconnectFromNetwork(ctx, interfaceName); err != nil {
@@ -452,13 +452,13 @@ func performAssociationAttempt(
 	attempt.RetryCount = result.RetryCount
 	attempt.AttemptedSecurity = result.AttemptedSecurity
 	attempt.NegotiatedSecurity = result.NegotiatedSecurity
-	attempt.IpAcquired = result.IpAcquired
-	attempt.IpAddress = result.IpAddress
+	attempt.IpAcquired = result.IPAcquired
+	attempt.IpAddress = result.IPAddress
 	attempt.DhcpServer = result.DhcpServer
 	attempt.Gateway = result.Gateway
-	attempt.DnsServers = result.DnsServers
+	attempt.DnsServers = result.DNSServers
 	attempt.PortalDetected = result.PortalDetected
-	attempt.PortalUrl = result.PortalUrl
+	attempt.PortalUrl = result.PortalURL
 	attempt.EapMethodNegotiated = result.EapMethodNegotiated
 	attempt.ErrorMessage = result.ErrorMessage
 
@@ -524,7 +524,7 @@ func testPlatformConnectivity(ctx context.Context, urlPtr *string) *connect.Plat
 			svc1log.SafeParam("response_time_ms", responseTime))
 		return result
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	result.StatusCode = &resp.StatusCode
 	success := resp.StatusCode == http.StatusOK
@@ -589,4 +589,3 @@ func ptrBool(b *bool) bool {
 	}
 	return *b
 }
-
