@@ -639,16 +639,12 @@ func connectToNetwork(
 			negSec := &connect.NegotiatedSecurity{}
 			switch cwResult.security {
 			case 3:
-				wpaVer := common.WpaVersionWpa3
-				negSec.WpaVersion = (*common.WpaVersion)(&wpaVer)
-				authMethod := common.AuthenticationMethodSae
-				negSec.AuthenticationMethod = (*common.AuthenticationMethod)(&authMethod)
+				negSec.WpaVersion = common.WpaVersionWpa3.Ptr()
+				negSec.AuthenticationMethod = common.AuthenticationMethodSae.Ptr()
 			case 2:
-				wpaVer := common.WpaVersionWpa2
-				negSec.WpaVersion = (*common.WpaVersion)(&wpaVer)
+				negSec.WpaVersion = common.WpaVersionWpa2.Ptr()
 			case 1:
-				wpaVer := common.WpaVersionWpa1
-				negSec.WpaVersion = (*common.WpaVersion)(&wpaVer)
+				negSec.WpaVersion = common.WpaVersionWpa1.Ptr()
 			}
 			result.NegotiatedSecurity = negSec
 		}
@@ -741,7 +737,7 @@ func detectCaptivePortal(ctx context.Context) (detected bool, portalURL string) 
 		log.Debug("Captive portal check failed", svc1log.SafeParam("error", err.Error()))
 		return false, ""
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// If we get a redirect, there's a captive portal
 	if resp.StatusCode == http.StatusFound || resp.StatusCode == http.StatusMovedPermanently {

@@ -26,7 +26,8 @@ func WithAllowDesktopPopups(ctx context.Context, allow bool) context.Context {
 	return context.WithValue(ctx, allowDesktopPopupsCtxKey{}, allow)
 }
 
-func allowDesktopPopups(ctx context.Context) bool {
+// AllowDesktopPopups returns whether desktop/OS password dialogs are allowed.
+func AllowDesktopPopups(ctx context.Context) bool {
 	if ctx == nil {
 		return false
 	}
@@ -68,7 +69,8 @@ func WithPlatformURL(ctx context.Context, url string) context.Context {
 	return context.WithValue(ctx, platformURLCtxKey{}, url)
 }
 
-func getPlatformURL(ctx context.Context) string {
+// GetPlatformURL returns the URL to test for platform connectivity.
+func GetPlatformURL(ctx context.Context) string {
 	if ctx == nil {
 		return ""
 	}
