@@ -19,17 +19,17 @@ typedef struct {
     char* bssid;
     int rssi;
     int security;
-} CWConnectionResult;
+} WAPConnectionResult;
 
 // Current connection info
 typedef struct {
     char* ssid;
     char* bssid;
     int connected;
-} CWCurrentConnection;
+} WAPCurrentConnection;
 
 // Free connection result memory
-void freeConnectionResult(CWConnectionResult* result) {
+void wapFreeConnectionResult(WAPConnectionResult* result) {
     if (result->error != NULL) {
         free(result->error);
         result->error = NULL;
@@ -45,7 +45,7 @@ void freeConnectionResult(CWConnectionResult* result) {
 }
 
 // Free current connection memory
-void freeCurrentConnection(CWCurrentConnection* conn) {
+void wapFreeCurrentConnection(WAPCurrentConnection* conn) {
     if (conn->ssid != NULL) {
         free(conn->ssid);
         conn->ssid = NULL;
@@ -57,7 +57,7 @@ void freeCurrentConnection(CWCurrentConnection* conn) {
 }
 
 // Helper to copy NSString to C string
-char* copyNSStringToCString(NSString* str) {
+static char* wapCopyNSString(NSString* str) {
     if (str == nil) return NULL;
     const char* utf8 = [str UTF8String];
     if (utf8 == NULL) return NULL;
@@ -65,8 +65,8 @@ char* copyNSStringToCString(NSString* str) {
 }
 
 // Get current WiFi connection
-CWCurrentConnection getCurrentWiFiConnection(char* interfaceName) {
-    CWCurrentConnection result = {0};
+WAPCurrentConnection wapGetCurrentWiFiConnection(char* interfaceName) {
+    WAPCurrentConnection result = {0};
 
     @autoreleasepool {
         CWWiFiClient* client = [CWWiFiClient sharedWiFiClient];
@@ -91,8 +91,8 @@ CWCurrentConnection getCurrentWiFiConnection(char* interfaceName) {
 
         if (ssid != nil && bssid != nil) {
             result.connected = 1;
-            result.ssid = copyNSStringToCString(ssid);
-            result.bssid = copyNSStringToCString(bssid);
+            result.ssid = wapCopyNSString(ssid);
+            result.bssid = wapCopyNSString(bssid);
         }
     }
 
@@ -100,7 +100,7 @@ CWCurrentConnection getCurrentWiFiConnection(char* interfaceName) {
 }
 
 // Get signal strength for a specific network
-int getNetworkSignalStrength(char* interfaceName, char* targetSSID, char* targetBSSID) {
+int wapGetNetworkSignalStrength(char* interfaceName, char* targetSSID, char* targetBSSID) {
     @autoreleasepool {
         CWWiFiClient* client = [CWWiFiClient sharedWiFiClient];
         if (client == nil) return 0;
@@ -150,7 +150,7 @@ int getNetworkSignalStrength(char* interfaceName, char* targetSSID, char* target
 }
 
 // Disconnect from current network
-int disconnectWiFi(char* interfaceName) {
+int wapDisconnectWiFi(char* interfaceName) {
     @autoreleasepool {
         CWWiFiClient* client = [CWWiFiClient sharedWiFiClient];
         if (client == nil) return -1;
@@ -171,8 +171,8 @@ int disconnectWiFi(char* interfaceName) {
 }
 
 // Connect to an open network
-CWConnectionResult connectToOpenNetwork(char* interfaceName, char* ssid) {
-    CWConnectionResult result = {0};
+WAPConnectionResult wapConnectToOpenNetwork(char* interfaceName, char* ssid) {
+    WAPConnectionResult result = {0};
 
     @autoreleasepool {
         CWWiFiClient* client = [CWWiFiClient sharedWiFiClient];
@@ -214,7 +214,7 @@ CWConnectionResult connectToOpenNetwork(char* interfaceName, char* ssid) {
 
         if (!connected || connectError != nil) {
             if (connectError != nil) {
-                result.error = copyNSStringToCString([connectError localizedDescription]);
+                result.error = wapCopyNSString([connectError localizedDescription]);
             } else {
                 result.error = strdup("Association failed");
             }
@@ -222,8 +222,8 @@ CWConnectionResult connectToOpenNetwork(char* interfaceName, char* ssid) {
         }
 
         result.success = 1;
-        result.ssid = copyNSStringToCString([network ssid]);
-        result.bssid = copyNSStringToCString([network bssid]);
+        result.ssid = wapCopyNSString([network ssid]);
+        result.bssid = wapCopyNSString([network bssid]);
         result.rssi = (int)[network rssiValue];
     }
 
@@ -231,8 +231,8 @@ CWConnectionResult connectToOpenNetwork(char* interfaceName, char* ssid) {
 }
 
 // Connect to a WPA-Personal network with PSK
-CWConnectionResult connectWithPSK(char* interfaceName, char* ssid, char* password) {
-    CWConnectionResult result = {0};
+WAPConnectionResult wapConnectWithPSK(char* interfaceName, char* ssid, char* password) {
+    WAPConnectionResult result = {0};
 
     @autoreleasepool {
         CWWiFiClient* client = [CWWiFiClient sharedWiFiClient];
@@ -279,7 +279,7 @@ CWConnectionResult connectWithPSK(char* interfaceName, char* ssid, char* passwor
                 if (code == -3924 || code == -3930) { // Authentication failures
                     result.error = strdup("Authentication failed - incorrect password");
                 } else {
-                    result.error = copyNSStringToCString([connectError localizedDescription]);
+                    result.error = wapCopyNSString([connectError localizedDescription]);
                 }
             } else {
                 result.error = strdup("Association failed");
@@ -288,8 +288,8 @@ CWConnectionResult connectWithPSK(char* interfaceName, char* ssid, char* passwor
         }
 
         result.success = 1;
-        result.ssid = copyNSStringToCString([network ssid]);
-        result.bssid = copyNSStringToCString([network bssid]);
+        result.ssid = wapCopyNSString([network ssid]);
+        result.bssid = wapCopyNSString([network bssid]);
         result.rssi = (int)[network rssiValue];
 
         // Get security type
@@ -307,7 +307,7 @@ CWConnectionResult connectWithPSK(char* interfaceName, char* ssid, char* passwor
 }
 
 // Find default wireless interface
-char* findDefaultWirelessInterface() {
+char* wapFindDefaultWirelessInterface() {
     @autoreleasepool {
         CWWiFiClient* client = [CWWiFiClient sharedWiFiClient];
         if (client == nil) return NULL;
@@ -318,26 +318,26 @@ char* findDefaultWirelessInterface() {
         NSString* name = [iface interfaceName];
         if (name == nil) return NULL;
 
-        return copyNSStringToCString(name);
+        return wapCopyNSString(name);
     }
 }
 
-// Network info for scan results
+// Network info for scan results (WAP-specific to avoid conflict with discover scanner)
 typedef struct {
     char* ssid;
     char* bssid;
     int rssi;
     int security;
-} CWNetworkInfo;
+} WAPNetworkInfo;
 
 // Scan result containing array of networks
 typedef struct {
-    CWNetworkInfo* networks;
+    WAPNetworkInfo* networks;
     int count;
-} CWScanResult;
+} WAPScanResult;
 
 // Free scan result memory
-void freeScanResult(CWScanResult* result) {
+void wapFreeScanResult(WAPScanResult* result) {
     if (result->networks != NULL) {
         for (int i = 0; i < result->count; i++) {
             if (result->networks[i].ssid != NULL) {
@@ -354,8 +354,8 @@ void freeScanResult(CWScanResult* result) {
 }
 
 // Scan for available networks
-CWScanResult scanNetworks(char* interfaceName) {
-    CWScanResult result = {0};
+WAPScanResult wapScanNetworks(char* interfaceName) {
+    WAPScanResult result = {0};
 
     @autoreleasepool {
         CWWiFiClient* client = [CWWiFiClient sharedWiFiClient];
@@ -383,15 +383,15 @@ CWScanResult scanNetworks(char* interfaceName) {
         }
 
         int count = (int)[networks count];
-        result.networks = (CWNetworkInfo*)malloc(count * sizeof(CWNetworkInfo));
+        result.networks = (WAPNetworkInfo*)malloc(count * sizeof(WAPNetworkInfo));
         if (result.networks == NULL) {
             return result;
         }
 
         int i = 0;
         for (CWNetwork* network in networks) {
-            result.networks[i].ssid = copyNSStringToCString([network ssid]);
-            result.networks[i].bssid = copyNSStringToCString([network bssid]);
+            result.networks[i].ssid = wapCopyNSString([network ssid]);
+            result.networks[i].bssid = wapCopyNSString([network bssid]);
             result.networks[i].rssi = (int)[network rssiValue];
 
             // Map security
@@ -438,7 +438,7 @@ import (
 
 // findWirelessInterface finds the default wireless interface on macOS.
 func findWirelessInterface(ctx context.Context) (string, error) {
-	cName := C.findDefaultWirelessInterface()
+	cName := C.wapFindDefaultWirelessInterface()
 	if cName == nil {
 		return "", fmt.Errorf("no wireless interface found")
 	}
@@ -465,8 +465,8 @@ func getCurrentConnection(ctx context.Context, interfaceName string) (ssid strin
 		defer C.free(unsafe.Pointer(cInterface))
 	}
 
-	result := C.getCurrentWiFiConnection(cInterface)
-	defer C.freeCurrentConnection(&result)
+	result := C.wapGetCurrentWiFiConnection(cInterface)
+	defer C.wapFreeCurrentConnection(&result)
 
 	if result.connected == 0 {
 		return "", "", false
@@ -499,7 +499,7 @@ func getSignalQuality(ctx context.Context, interfaceName string, targetSSID stri
 		defer C.free(unsafe.Pointer(cBSSID))
 	}
 
-	return int(C.getNetworkSignalStrength(cInterface, cSSID, cBSSID))
+	return int(C.wapGetNetworkSignalStrength(cInterface, cSSID, cBSSID))
 }
 
 // disconnectFromNetwork disconnects from the current WiFi network.
@@ -510,7 +510,7 @@ func disconnectFromNetwork(ctx context.Context, interfaceName string) error {
 		defer C.free(unsafe.Pointer(cInterface))
 	}
 
-	result := C.disconnectWiFi(cInterface)
+	result := C.wapDisconnectWiFi(cInterface)
 	if result != 0 {
 		return fmt.Errorf("failed to disconnect")
 	}
@@ -549,8 +549,8 @@ func reconnectToOriginalNetwork(ctx context.Context, interfaceName string, origi
 	defer C.free(unsafe.Pointer(cSSID))
 
 	// Try connecting as open network (macOS will use saved credentials)
-	result := C.connectToOpenNetwork(cInterface, cSSID)
-	defer C.freeConnectionResult(&result)
+	result := C.wapConnectToOpenNetwork(cInterface, cSSID)
+	defer C.wapFreeConnectionResult(&result)
 
 	if result.success != 0 {
 		// Wait for connection to stabilize and verify
@@ -598,13 +598,13 @@ func connectToNetwork(
 	cSSID := C.CString(targetSSID)
 	defer C.free(unsafe.Pointer(cSSID))
 
-	var cwResult C.CWConnectionResult
+	var cwResult C.WAPConnectionResult
 
 	switch cred.CredentialType {
 	case connect.TestCredentialTypeNone:
 		// Open network connection
-		cwResult = C.connectToOpenNetwork(cInterface, cSSID)
-		defer C.freeConnectionResult(&cwResult)
+		cwResult = C.wapConnectToOpenNetwork(cInterface, cSSID)
+		defer C.wapFreeConnectionResult(&cwResult)
 
 	case connect.TestCredentialTypePskSimple, connect.TestCredentialTypePskCommon:
 		// PSK connection
@@ -615,8 +615,8 @@ func connectToNetwork(
 		cPassword := C.CString(*cred.Psk)
 		defer C.free(unsafe.Pointer(cPassword))
 
-		cwResult = C.connectWithPSK(cInterface, cSSID, cPassword)
-		defer C.freeConnectionResult(&cwResult)
+		cwResult = C.wapConnectWithPSK(cInterface, cSSID, cPassword)
+		defer C.wapFreeConnectionResult(&cwResult)
 
 	case connect.TestCredentialTypeEapTestIdentity, connect.TestCredentialTypeEapGuest:
 		// EAP connection - not directly supported via CoreWLAN
@@ -766,9 +766,9 @@ func detectNetworkSecurity(ctx context.Context, interfaceName string, targetSSID
 	}
 
 	// Scan for networks
-	var scanResult C.CWScanResult
-	scanResult = C.scanNetworks(cInterface)
-	defer C.freeScanResult(&scanResult)
+	var scanResult C.WAPScanResult
+	scanResult = C.wapScanNetworks(cInterface)
+	defer C.wapFreeScanResult(&scanResult)
 
 	if scanResult.count == 0 {
 		log.Warn("No networks found during security detection scan")

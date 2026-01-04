@@ -392,7 +392,7 @@ func connectToNetwork(
 		// failure asking the user to re-enter the password. We can't reliably suppress that
 		// from nmcli. The only deterministic way is to avoid NetworkManager for the attempt.
 		inDesktopSession := os.Getenv("DISPLAY") != "" || os.Getenv("WAYLAND_DISPLAY") != ""
-		if inDesktopSession && !allowDesktopPopups(ctx) {
+		if inDesktopSession && !AllowDesktopPopups(ctx) {
 			if os.Getuid() != 0 {
 				result.WithError(
 					connect.ConnectionOutcomePermissionDenied,
@@ -428,7 +428,7 @@ func connectToNetwork(
 			return result
 		}
 		inDesktopSession := os.Getenv("DISPLAY") != "" || os.Getenv("WAYLAND_DISPLAY") != ""
-		if inDesktopSession && !allowDesktopPopups(ctx) {
+		if inDesktopSession && !AllowDesktopPopups(ctx) {
 			// We currently use nmcli for EAP on Linux. That will trigger the desktop secret agent
 			// on auth failures, so refuse unless explicitly allowed.
 			result.WithError(
@@ -1109,7 +1109,7 @@ network={
 
 							// Test platform connectivity if URL is provided via context
 							// This MUST happen while still connected (wpa_supplicant running)
-							platformURL := getPlatformURL(ctx)
+							platformURL := GetPlatformURL(ctx)
 							if platformURL != "" {
 								log.Info("Testing platform connectivity while connected",
 									svc1log.SafeParam("url", platformURL))
