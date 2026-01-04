@@ -337,9 +337,15 @@ func connectWithNetsh(ctx context.Context, iface, ssid, password string, timeout
 	time.Sleep(3 * time.Second)
 
 	// Verify connection
-	currentSSID, _, connected := getCurrentConnection(ctx, iface)
+	currentSSID, currentBSSID, connected := getCurrentConnection(ctx, iface)
 	if connected && currentSSID == ssid {
 		result.WithSuccess()
+
+		// Store the actual connected BSSID
+		if currentBSSID != "" {
+			result.ConnectedBSSID = &currentBSSID
+			log.Debug("Connected to BSSID", svc1log.SafeParam("bssid", currentBSSID))
+		}
 
 		// Get security info
 		negSec := getSecurityInfoWindows(ctx, iface)

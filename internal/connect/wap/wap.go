@@ -26,8 +26,7 @@ func WithAllowDesktopPopups(ctx context.Context, allow bool) context.Context {
 	return context.WithValue(ctx, allowDesktopPopupsCtxKey{}, allow)
 }
 
-// AllowDesktopPopups returns whether desktop/OS password dialogs are allowed.
-func AllowDesktopPopups(ctx context.Context) bool {
+func allowDesktopPopups(ctx context.Context) bool {
 	if ctx == nil {
 		return false
 	}
@@ -69,8 +68,7 @@ func WithPlatformURL(ctx context.Context, url string) context.Context {
 	return context.WithValue(ctx, platformURLCtxKey{}, url)
 }
 
-// GetPlatformURL returns the URL to test for platform connectivity.
-func GetPlatformURL(ctx context.Context) string {
+func getPlatformURL(ctx context.Context) string {
 	if ctx == nil {
 		return ""
 	}
@@ -429,6 +427,7 @@ func performAssociationAttempt(
 	if targetSSID != "" {
 		attempt.Ssid = &targetSSID
 	}
+	// Set target BSSID initially (will be overwritten with actual connected BSSID if available)
 	if targetBSSID != "" {
 		attempt.Bssid = &targetBSSID
 	}
@@ -445,6 +444,12 @@ func performAssociationAttempt(
 	endTime := time.Now()
 	attempt.EndTime = &endTime
 	attempt.Outcome = result.Outcome
+
+	// Use actual connected BSSID if available (overrides target BSSID)
+	if result.ConnectedBSSID != nil {
+		attempt.Bssid = result.ConnectedBSSID
+	}
+
 	attempt.AssociationStatusCode = result.AssociationStatusCode
 	attempt.AssociationStatusCodeRaw = result.AssociationStatusCodeRaw
 	attempt.DeauthReasonCode = result.DeauthReasonCode

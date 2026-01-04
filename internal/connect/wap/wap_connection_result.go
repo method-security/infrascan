@@ -8,6 +8,7 @@ import (
 // This is populated by platform-specific code.
 type ConnectionResult struct {
 	Outcome                  connect.ConnectionOutcome
+	ConnectedBSSID           *string // Actual BSSID connected to (from iw/wpa_cli/nmcli)
 	AssociationStatusCode    *connect.AssociationStatusCode
 	AssociationStatusCodeRaw *int
 	DeauthReasonCode         *connect.DeauthReasonCode
