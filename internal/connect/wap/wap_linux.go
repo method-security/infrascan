@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Method-Security/infrascan/generated/go/associate"
 	"github.com/Method-Security/infrascan/generated/go/common"
+	"github.com/Method-Security/infrascan/generated/go/connect"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 )
 
@@ -215,7 +215,7 @@ func disconnectFromNetwork(ctx context.Context, interfaceName string) error {
 // Uses 'nmcli connection up' with the saved profile name, which is more reliable
 // than 'nmcli device wifi connect' because it doesn't require the network to be
 // visible in the current scan - it uses the saved connection profile.
-func reconnectToOriginalNetwork(ctx context.Context, interfaceName string, original *associate.OriginalNetworkState) error {
+func reconnectToOriginalNetwork(ctx context.Context, interfaceName string, original *connect.OriginalNetworkState) error {
 	if original == nil || !original.WasConnected {
 		return nil
 	}
@@ -346,7 +346,7 @@ func connectToNetwork(
 	interfaceName string,
 	targetSSID string,
 	targetBSSID string,
-	cred *associate.TestClientProfile,
+	cred *connect.TestClientProfile,
 	timeout int,
 ) *ConnectionResult {
 	log := svc1log.FromContext(ctx)
@@ -360,7 +360,7 @@ func connectToNetwork(
 		var err error
 		iface, err = findWirelessInterface(ctx)
 		if err != nil {
-			result.WithError(associate.AssociationOutcomeInterfaceError, err.Error())
+			result.WithError(connect.ConnectionOutcomeInterfaceError, err.Error())
 			return result
 		}
 	}
@@ -370,20 +370,20 @@ func connectToNetwork(
 	hasWpaSupplicant := checkCommandExists("wpa_supplicant")
 
 	switch cred.CredentialType {
-	case associate.TestCredentialTypeNone:
+	case connect.TestCredentialTypeNone:
 		// Open network connection
 		if hasNmcli {
 			result = connectWithNmcli(ctx, iface, targetSSID, targetBSSID, "", timeout)
 		} else if hasWpaSupplicant {
 			result = connectWithWpaSupplicant(ctx, iface, targetSSID, "", timeout, false)
 		} else {
-			result.WithError(associate.AssociationOutcomeDriverError, "Neither nmcli nor wpa_supplicant available")
+			result.WithError(connect.ConnectionOutcomeDriverError, "Neither nmcli nor wpa_supplicant available")
 		}
 
-	case associate.TestCredentialTypePskSimple, associate.TestCredentialTypePskCommon:
+	case connect.TestCredentialTypePskSimple, connect.TestCredentialTypePskCommon:
 		// PSK connection
 		if cred.Psk == nil || *cred.Psk == "" {
-			result.WithError(associate.AssociationOutcomeAuthFailed, "PSK credential required but not provided")
+			result.WithError(connect.ConnectionOutcomeAuthFailed, "PSK credential required but not provided")
 			return result
 		}
 
@@ -395,7 +395,7 @@ func connectToNetwork(
 		if inDesktopSession && !allowDesktopPopups(ctx) {
 			if os.Getuid() != 0 {
 				result.WithError(
-					associate.AssociationOutcomePermissionDenied,
+					connect.ConnectionOutcomePermissionDenied,
 					"refusing to attempt WPA-Personal association via NetworkManager in a desktop session because authentication failures will trigger an OS password prompt. "+
 						"Re-run with sudo to use the non-NetworkManager association path, or pass --allow-desktop-popups to allow the OS prompt.",
 				)
@@ -408,7 +408,7 @@ func connectToNetwork(
 				// Best-effort fallback when nmcli isn't available to toggle managed state.
 				result = connectWithWpaSupplicant(ctx, iface, targetSSID, *cred.Psk, timeout, false)
 			} else {
-				result.WithError(associate.AssociationOutcomeDriverError, "wpa_supplicant not available (required to avoid NetworkManager desktop prompts)")
+				result.WithError(connect.ConnectionOutcomeDriverError, "wpa_supplicant not available (required to avoid NetworkManager desktop prompts)")
 			}
 			break
 		}
@@ -418,13 +418,13 @@ func connectToNetwork(
 		} else if hasWpaSupplicant {
 			result = connectWithWpaSupplicant(ctx, iface, targetSSID, *cred.Psk, timeout, false)
 		} else {
-			result.WithError(associate.AssociationOutcomeDriverError, "Neither nmcli nor wpa_supplicant available")
+			result.WithError(connect.ConnectionOutcomeDriverError, "Neither nmcli nor wpa_supplicant available")
 		}
 
-	case associate.TestCredentialTypeEapTestIdentity, associate.TestCredentialTypeEapGuest:
+	case connect.TestCredentialTypeEapTestIdentity, connect.TestCredentialTypeEapGuest:
 		// EAP connection
 		if cred.EapIdentity == nil || *cred.EapIdentity == "" {
-			result.WithError(associate.AssociationOutcomeAuthFailed, "EAP identity required but not provided")
+			result.WithError(connect.ConnectionOutcomeAuthFailed, "EAP identity required but not provided")
 			return result
 		}
 		inDesktopSession := os.Getenv("DISPLAY") != "" || os.Getenv("WAYLAND_DISPLAY") != ""
@@ -432,7 +432,7 @@ func connectToNetwork(
 			// We currently use nmcli for EAP on Linux. That will trigger the desktop secret agent
 			// on auth failures, so refuse unless explicitly allowed.
 			result.WithError(
-				associate.AssociationOutcomePermissionDenied,
+				connect.ConnectionOutcomePermissionDenied,
 				"refusing to attempt WPA-Enterprise (EAP) association in a desktop session because authentication failures may trigger an OS password prompt. "+
 					"Run from a non-desktop session or pass --allow-desktop-popups to allow the OS prompt.",
 			)
@@ -442,17 +442,17 @@ func connectToNetwork(
 			result = connectWithNmcliEAP(ctx, iface, targetSSID, *cred.EapIdentity, ptrStr(cred.EapPassword), timeout)
 		} else {
 			log.Warn("EAP connection without nmcli is not supported")
-			result.WithError(associate.AssociationOutcomeDriverError, "EAP connection requires nmcli")
+			result.WithError(connect.ConnectionOutcomeDriverError, "EAP connection requires nmcli")
 		}
 
 	default:
-		result.WithError(associate.AssociationOutcomeUnknownError, fmt.Sprintf("unsupported credential type: %s", cred.CredentialType))
+		result.WithError(connect.ConnectionOutcomeUnknownError, fmt.Sprintf("unsupported credential type: %s", cred.CredentialType))
 	}
 
 	// If connection succeeded, get additional info (unless already done)
 	// Note: connectWithWpaSupplicantNoNetworkManager does DHCP internally because it needs
 	// to complete before restoring NetworkManager control. Other paths do DHCP here.
-	if result.Outcome == associate.AssociationOutcomeSuccess && result.IpAcquired == nil {
+	if result.Outcome == connect.ConnectionOutcomeSuccess && result.IpAcquired == nil {
 		// Get DHCP info
 		ipAcquired, ip, gateway, dns := waitForDHCPLinux(ctx, iface, timeout)
 		result.IpAcquired = &ipAcquired
@@ -535,7 +535,7 @@ func connectWithNmcli(ctx context.Context, iface, ssid, bssid, password string, 
 		log.Warn("Failed to create connection profile",
 			svc1log.SafeParam("output", string(createOutput)),
 			svc1log.SafeParam("error", err.Error()))
-		result.WithError(associate.AssociationOutcomeDriverError, fmt.Sprintf("Failed to create connection profile: %s", string(createOutput)))
+		result.WithError(connect.ConnectionOutcomeDriverError, fmt.Sprintf("Failed to create connection profile: %s", string(createOutput)))
 		return result
 	}
 
@@ -581,7 +581,7 @@ func connectWithNmcli(ctx context.Context, iface, ssid, bssid, password string, 
 			result.WithTimeout("Connection timed out")
 		} else if strings.Contains(outputStr, "No network with SSID") ||
 			strings.Contains(outputStr, "not found") {
-			result.WithError(associate.AssociationOutcomeNetworkNotFound, "Network not found")
+			result.WithError(connect.ConnectionOutcomeNetworkNotFound, "Network not found")
 		} else if strings.Contains(outputStr, "Secrets were required") ||
 			strings.Contains(outputStr, "No secrets provided") ||
 			strings.Contains(outputStr, "802-11-wireless-security.psk") ||
@@ -590,7 +590,7 @@ func connectWithNmcli(ctx context.Context, iface, ssid, bssid, password string, 
 			strings.Contains(outputStr, "authentication") {
 			result.WithAuthFailed("Authentication failed - incorrect password")
 		} else {
-			result.WithError(associate.AssociationOutcomeAssocFailed, outputStr)
+			result.WithError(connect.ConnectionOutcomeAssocFailed, outputStr)
 		}
 		return result
 	}
@@ -613,7 +613,7 @@ func connectWithNmcli(ctx context.Context, iface, ssid, bssid, password string, 
 			log.Info("Marking profile for persistence (--test-only=false)")
 		}
 	} else {
-		result.WithError(associate.AssociationOutcomeAssocFailed, "Connection not established after nmcli reported success")
+		result.WithError(connect.ConnectionOutcomeAssocFailed, "Connection not established after nmcli reported success")
 	}
 
 	// Store BSSID if available
@@ -660,7 +660,7 @@ func connectWithNmcliEAP(ctx context.Context, iface, ssid, identity, password st
 	createCmd := exec.Command("nmcli", args...)
 	output, err := createCmd.CombinedOutput()
 	if err != nil {
-		result.WithError(associate.AssociationOutcomeDriverError, fmt.Sprintf("Failed to create EAP profile: %s", string(output)))
+		result.WithError(connect.ConnectionOutcomeDriverError, fmt.Sprintf("Failed to create EAP profile: %s", string(output)))
 		return result
 	}
 
@@ -703,14 +703,14 @@ func connectWithNmcliEAP(ctx context.Context, iface, ssid, identity, password st
 			result.WithTimeout("Connection timed out")
 		} else if strings.Contains(outputStr, "No network with SSID") ||
 			strings.Contains(outputStr, "not found") {
-			result.WithError(associate.AssociationOutcomeNetworkNotFound, "Network not found")
+			result.WithError(connect.ConnectionOutcomeNetworkNotFound, "Network not found")
 		} else if strings.Contains(outputStr, "authentication") ||
 			strings.Contains(outputStr, "Secrets were required") ||
 			strings.Contains(outputStr, "secrets:") ||
 			strings.Contains(outputStr, "802-1x") {
 			result.WithAuthFailed("EAP authentication failed - incorrect identity or password")
 		} else {
-			result.WithError(associate.AssociationOutcomeAssocFailed, outputStr)
+			result.WithError(connect.ConnectionOutcomeAssocFailed, outputStr)
 		}
 		return result
 	}
@@ -718,8 +718,8 @@ func connectWithNmcliEAP(ctx context.Context, iface, ssid, identity, password st
 	result.WithSuccess()
 
 	// Set negotiated security
-	negSec := &associate.NegotiatedSecurity{}
-	eapMethod := associate.EapMethodPeap
+	negSec := &connect.NegotiatedSecurity{}
+	eapMethod := connect.EapMethodPeap
 	negSec.EapMethod = &eapMethod
 	authMethod := common.AuthenticationMethodEap
 	negSec.AuthenticationMethod = (*common.AuthenticationMethod)(&authMethod)
@@ -850,14 +850,14 @@ func connectWithWpaSupplicantNoNetworkManager(ctx context.Context, iface, ssid, 
 	result := NewConnectionResult()
 
 	if os.Getuid() != 0 {
-		result.WithError(associate.AssociationOutcomePermissionDenied, "root privileges required for non-NetworkManager association path")
+		result.WithError(connect.ConnectionOutcomePermissionDenied, "root privileges required for non-NetworkManager association path")
 		return result
 	}
 
 	// Best-effort: disconnect and mark unmanaged so NM won't interfere / trigger UI.
 	_ = exec.Command("nmcli", "device", "disconnect", iface).Run()
 	if out, err := exec.Command("nmcli", "device", "set", iface, "managed", "no").CombinedOutput(); err != nil {
-		result.WithError(associate.AssociationOutcomeDriverError, fmt.Sprintf("failed to set device unmanaged (nmcli device set %s managed no): %s", iface, strings.TrimSpace(string(out))))
+		result.WithError(connect.ConnectionOutcomeDriverError, fmt.Sprintf("failed to set device unmanaged (nmcli device set %s managed no): %s", iface, strings.TrimSpace(string(out))))
 		return result
 	}
 	defer func() {
@@ -917,7 +917,7 @@ func connectWithWpaSupplicant(ctx context.Context, iface, ssid, password string,
 	// Create temporary wpa_supplicant config with ctrl_interface for wpa_cli
 	configFile, err := os.CreateTemp("", "wpa_supplicant_*.conf")
 	if err != nil {
-		result.WithError(associate.AssociationOutcomeDriverError, fmt.Sprintf("Failed to create config: %v", err))
+		result.WithError(connect.ConnectionOutcomeDriverError, fmt.Sprintf("Failed to create config: %v", err))
 		return result
 	}
 	defer os.Remove(configFile.Name())
@@ -943,7 +943,7 @@ network={
 	}
 
 	if _, err := configFile.WriteString(config); err != nil {
-		result.WithError(associate.AssociationOutcomeDriverError, fmt.Sprintf("Failed to write config: %v", err))
+		result.WithError(connect.ConnectionOutcomeDriverError, fmt.Sprintf("Failed to write config: %v", err))
 		return result
 	}
 	configFile.Close()
@@ -953,7 +953,7 @@ network={
 	cmd := exec.Command("wpa_supplicant", "-i", iface, "-c", configFile.Name(), "-B", "-d")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		result.WithError(associate.AssociationOutcomeDriverError, fmt.Sprintf("wpa_supplicant failed to start: %v - %s", err, string(output)))
+		result.WithError(connect.ConnectionOutcomeDriverError, fmt.Sprintf("wpa_supplicant failed to start: %v - %s", err, string(output)))
 		return result
 	}
 
@@ -968,7 +968,7 @@ network={
 	time.Sleep(1 * time.Second)
 
 	// Set up attempted security info (what we're TRYING to negotiate)
-	attemptedSec := &associate.NegotiatedSecurity{}
+	attemptedSec := &connect.NegotiatedSecurity{}
 	if password != "" {
 		wpaVer := common.WpaVersionWpa2 // Assume WPA2 for PSK
 		attemptedSec.WpaVersion = &wpaVer
@@ -980,7 +980,7 @@ network={
 	result.AttemptedSecurity = attemptedSec
 
 	// Initialize timing tracking
-	timing := &associate.AssociationTiming{}
+	timing := &connect.ConnectionTiming{}
 	overallStart := time.Now()
 	var associationStart, handshakeStart time.Time
 
@@ -998,7 +998,7 @@ network={
 	retryCount := 0
 
 	// Track the highest handshake progress we've seen
-	var highestProgress associate.HandshakeProgress = associate.HandshakeProgressNotStarted
+	var highestProgress connect.HandshakeProgress = connect.HandshakeProgressNotStarted
 	result.HandshakeProgress = &highestProgress
 
 	for time.Now().Before(deadline) {
@@ -1025,16 +1025,16 @@ network={
 				// Record timing milestones
 				now := time.Now()
 				switch newProgress {
-				case associate.HandshakeProgressAssociating:
+				case connect.HandshakeProgressAssociating:
 					if associationStart.IsZero() {
 						associationStart = now
 					}
-				case associate.HandshakeProgressAssociated:
+				case connect.HandshakeProgressAssociated:
 					if !associationStart.IsZero() {
 						dur := int(now.Sub(associationStart).Milliseconds())
 						timing.AssociationDurationMs = &dur
 					}
-				case associate.HandshakeProgressFourWayMsg1Received:
+				case connect.HandshakeProgressFourWayMsg1Received:
 					if handshakeStart.IsZero() {
 						handshakeStart = now
 					}
@@ -1074,7 +1074,7 @@ network={
 					timing.TotalDurationMs = &totalDur
 					result.Timing = timing
 
-					highestProgress = associate.HandshakeProgressCompleted
+					highestProgress = connect.HandshakeProgressCompleted
 					result.HandshakeProgress = &highestProgress
 
 					// Parse negotiated security from wpa_cli status
@@ -1136,7 +1136,7 @@ network={
 
 			// Count disconnects - multiple disconnects after associating = auth failure
 			if strings.Contains(statusStr, "wpa_state=DISCONNECTED") {
-				if progressOrder(highestProgress) >= progressOrder(associate.HandshakeProgressAssociating) {
+				if progressOrder(highestProgress) >= progressOrder(connect.HandshakeProgressAssociating) {
 					disconnectCount++
 					retryCount++
 					log.Debug("Disconnect detected after associating",
@@ -1155,11 +1155,11 @@ network={
 						result.RetryCount = &retryCount
 
 						// Set reason code - 4-way handshake timeout is reason 15
-						if progressOrder(highestProgress) >= progressOrder(associate.HandshakeProgressFourWayMsg1Received) {
-							reasonCode := associate.DeauthReasonCodeFourWayHandshakeTimeout
-							result.ReasonCode = &reasonCode
+						if progressOrder(highestProgress) >= progressOrder(connect.HandshakeProgressFourWayMsg1Received) {
+							reasonCode := connect.DeauthReasonCodeFourWayHandshakeTimeout
+							result.DeauthReasonCode = &reasonCode
 							rawCode := 15
-							result.ReasonCodeRaw = &rawCode
+							result.DeauthReasonCodeRaw = &rawCode
 						}
 
 						result.WithAuthFailed("Authentication failed - incorrect password")
@@ -1183,13 +1183,13 @@ network={
 
 	if password != "" {
 		// For PSK networks, timeout after we tried to associate = wrong password
-		if progressOrder(highestProgress) >= progressOrder(associate.HandshakeProgressAssociating) {
+		if progressOrder(highestProgress) >= progressOrder(connect.HandshakeProgressAssociating) {
 			// Set reason code based on how far we got
-			if progressOrder(highestProgress) >= progressOrder(associate.HandshakeProgressFourWayMsg1Received) {
-				reasonCode := associate.DeauthReasonCodeFourWayHandshakeTimeout
-				result.ReasonCode = &reasonCode
+			if progressOrder(highestProgress) >= progressOrder(connect.HandshakeProgressFourWayMsg1Received) {
+				reasonCode := connect.DeauthReasonCodeFourWayHandshakeTimeout
+				result.DeauthReasonCode = &reasonCode
 				rawCode := 15
-				result.ReasonCodeRaw = &rawCode
+				result.DeauthReasonCodeRaw = &rawCode
 				result.WithAuthFailed("Authentication failed - 4-way handshake did not complete (wrong password)")
 			} else {
 				result.WithAuthFailed("Authentication failed - association rejected (wrong password or AP rejected)")
@@ -1204,56 +1204,56 @@ network={
 }
 
 // mapWpaStateToProgress maps wpa_supplicant state strings to HandshakeProgress enum.
-func mapWpaStateToProgress(state string) associate.HandshakeProgress {
+func mapWpaStateToProgress(state string) connect.HandshakeProgress {
 	switch strings.ToUpper(state) {
 	case "DISCONNECTED", "INACTIVE":
-		return associate.HandshakeProgressDisconnected
+		return connect.HandshakeProgressDisconnected
 	case "SCANNING":
-		return associate.HandshakeProgressScanning
+		return connect.HandshakeProgressScanning
 	case "AUTHENTICATING":
-		return associate.HandshakeProgressAuthenticating
+		return connect.HandshakeProgressAuthenticating
 	case "ASSOCIATING":
-		return associate.HandshakeProgressAssociating
+		return connect.HandshakeProgressAssociating
 	case "ASSOCIATED":
-		return associate.HandshakeProgressAssociated
+		return connect.HandshakeProgressAssociated
 	case "4WAY_HANDSHAKE":
 		// We're in the 4-way handshake but don't know exact message
-		return associate.HandshakeProgressFourWayMsg1Received
+		return connect.HandshakeProgressFourWayMsg1Received
 	case "GROUP_HANDSHAKE":
-		return associate.HandshakeProgressGroupHandshake
+		return connect.HandshakeProgressGroupHandshake
 	case "COMPLETED":
-		return associate.HandshakeProgressCompleted
+		return connect.HandshakeProgressCompleted
 	default:
-		return associate.HandshakeProgressNotStarted
+		return connect.HandshakeProgressNotStarted
 	}
 }
 
 // progressOrder returns a numeric order for HandshakeProgress for comparison.
-func progressOrder(p associate.HandshakeProgress) int {
+func progressOrder(p connect.HandshakeProgress) int {
 	switch p {
-	case associate.HandshakeProgressNotStarted:
+	case connect.HandshakeProgressNotStarted:
 		return 0
-	case associate.HandshakeProgressScanning:
+	case connect.HandshakeProgressScanning:
 		return 1
-	case associate.HandshakeProgressAuthenticating:
+	case connect.HandshakeProgressAuthenticating:
 		return 2
-	case associate.HandshakeProgressAssociating:
+	case connect.HandshakeProgressAssociating:
 		return 3
-	case associate.HandshakeProgressAssociated:
+	case connect.HandshakeProgressAssociated:
 		return 4
-	case associate.HandshakeProgressFourWayMsg1Received:
+	case connect.HandshakeProgressFourWayMsg1Received:
 		return 5
-	case associate.HandshakeProgressFourWayMsg2Sent:
+	case connect.HandshakeProgressFourWayMsg2Sent:
 		return 6
-	case associate.HandshakeProgressFourWayMsg3Received:
+	case connect.HandshakeProgressFourWayMsg3Received:
 		return 7
-	case associate.HandshakeProgressFourWayMsg4Sent:
+	case connect.HandshakeProgressFourWayMsg4Sent:
 		return 8
-	case associate.HandshakeProgressGroupHandshake:
+	case connect.HandshakeProgressGroupHandshake:
 		return 9
-	case associate.HandshakeProgressCompleted:
+	case connect.HandshakeProgressCompleted:
 		return 10
-	case associate.HandshakeProgressDisconnected:
+	case connect.HandshakeProgressDisconnected:
 		return -1 // Special case
 	default:
 		return 0
@@ -1261,8 +1261,8 @@ func progressOrder(p associate.HandshakeProgress) int {
 }
 
 // parseNegotiatedSecurityFromWpaCli parses security info from wpa_cli status output.
-func parseNegotiatedSecurityFromWpaCli(statusStr string) *associate.NegotiatedSecurity {
-	negSec := &associate.NegotiatedSecurity{}
+func parseNegotiatedSecurityFromWpaCli(statusStr string) *connect.NegotiatedSecurity {
+	negSec := &connect.NegotiatedSecurity{}
 
 	// Parse key_mgmt
 	if keyMgmt := regexp.MustCompile(`(?m)^key_mgmt=(.+)$`).FindStringSubmatch(statusStr); len(keyMgmt) > 1 {
@@ -1321,7 +1321,7 @@ func parseNegotiatedSecurityFromWpaCli(statusStr string) *associate.NegotiatedSe
 }
 
 // getSecurityInfoNmcli retrieves negotiated security info using nmcli.
-func getSecurityInfoNmcli(ctx context.Context, ssid string) *associate.NegotiatedSecurity {
+func getSecurityInfoNmcli(ctx context.Context, ssid string) *connect.NegotiatedSecurity {
 	cmd := exec.Command("nmcli", "-t", "-f", "SECURITY", "device", "wifi", "list")
 	output, err := cmd.Output()
 	if err != nil {
@@ -1329,7 +1329,7 @@ func getSecurityInfoNmcli(ctx context.Context, ssid string) *associate.Negotiate
 	}
 
 	// Parse security info
-	negSec := &associate.NegotiatedSecurity{}
+	negSec := &connect.NegotiatedSecurity{}
 
 	outputStr := string(output)
 	if strings.Contains(outputStr, "WPA3") {

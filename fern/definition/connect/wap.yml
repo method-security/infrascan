@@ -1,10 +1,8 @@
-# Active Association Validation for Wireless Access Points
-# Confirms that an SSID/AP actually enforces the advertised security and expected
-# access controls using a designated test client profile.
+# Connection Validation for Wireless Access Points
+# Confirms that an SSID/AP actually enforces the advertised security and expected access controls using a designated test client profile.
 #
 # Category: challenge/validation (authorized, controlled)
-# Purpose: Attempt to associate/connect using a permitted test identity
-# and collect high-level outcomes without credential guessing or disruption.
+# Purpose: Attempt to connect using a permitted test identity and collect high-level outcomes without credential guessing or disruption.
 
 imports:
     wireless: ../common/wireless.yml
@@ -137,11 +135,11 @@ types:
             - UNKNOWN
 
     # =============================================================================
-    # ASSOCIATION TIMING BREAKDOWN
+    # CONNECTION TIMING BREAKDOWN
     # =============================================================================
-    AssociationTiming:
+    ConnectionTiming:
         docs: |
-            Timing breakdown for association attempt phases.
+            Timing breakdown for connection attempt phases.
             Helps diagnose where delays or failures occurred.
         properties:
             scanDurationMs: optional<integer>
@@ -206,11 +204,11 @@ types:
             wepKey: optional<string>
 
     # =============================================================================
-    # ASSOCIATION OUTCOME
+    # CONNECTION OUTCOME
     # =============================================================================
-    AssociationOutcome:
+    ConnectionOutcome:
         docs: |
-            High-level outcome categories for association attempts.
+            High-level outcome categories for connection attempts.
         enum:
             - SUCCESS
             - AUTH_FAILED
@@ -229,9 +227,9 @@ types:
     # =============================================================================
     # CONFIG, RESULT, REPORT STRUCTS (Top-Level API Pattern)
     # =============================================================================
-    ValidateAssociationConfig:
+    ValidateConnectionConfig:
         docs: |
-            Configuration for active association validation.
+            Configuration for active connection validation.
             Specifies target network and test client profile to use.
         properties:
             interface: optional<string>
@@ -271,22 +269,21 @@ types:
             pmfPolicy: optional<wireless.PmfPolicy>
             requiresAuthentication: optional<boolean>
 
-    ValidateAssociationResult:
+    ValidateConnectionResult:
         docs: |
-            Result of association validation containing all attempt outcomes.
+            Result of connection validation containing all attempt outcomes.
         properties:
-            attempts: optional<list<AssociationAttempt>>
-            findings: optional<list<Finding>>
+            attempts: optional<list<ConnectionAttempt>>
             originalNetworkRestored: optional<boolean>
             originalNetwork: optional<OriginalNetworkState>
             platformConnectivity: optional<PlatformConnectivityResult>
 
-    ValidateAssociationReport:
+    ValidateConnectionReport:
         docs: |
-            Complete report for association validation including config, results, and errors.
+            Complete report for connection validation including config, results, and errors.
         properties:
-            config: ValidateAssociationConfig
-            result: ValidateAssociationResult
+            config: ValidateConnectionConfig
+            result: ValidateConnectionResult
             errors: optional<list<string>>
 
     # =============================================================================
@@ -340,24 +337,24 @@ types:
                 type: optional<boolean>
 
     # =============================================================================
-    # ASSOCIATION ATTEMPT
+    # CONNECTION ATTEMPT
     # =============================================================================
-    AssociationAttempt:
+    ConnectionAttempt:
         docs: |
-            Record of a single association attempt including timing, outcome,
+            Record of a single connection attempt including timing, outcome,
             and negotiated security properties.
         properties:
             ssid: optional<string>
             bssid: optional<string>
             startTime: datetime
             endTime: optional<datetime>
-            outcome: AssociationOutcome
-            statusCode: optional<AssociationStatusCode>
-            statusCodeRaw: optional<integer>
-            reasonCode: optional<DeauthReasonCode>
-            reasonCodeRaw: optional<integer>
+            outcome: ConnectionOutcome
+            associationStatusCode: optional<AssociationStatusCode>
+            associationStatusCodeRaw: optional<integer>
+            deauthReasonCode: optional<DeauthReasonCode>
+            deauthReasonCodeRaw: optional<integer>
             handshakeProgress: optional<HandshakeProgress>
-            timing: optional<AssociationTiming>
+            timing: optional<ConnectionTiming>
             retryCount: optional<integer>
             attemptedSecurity: optional<NegotiatedSecurity>
             negotiatedSecurity: optional<NegotiatedSecurity>
@@ -375,7 +372,7 @@ types:
 
     NegotiatedSecurity:
         docs: |
-            Security configuration actually negotiated during association.
+            Security configuration actually negotiated during connection.
             May differ from advertised security.
         properties:
             authenticationMethod: optional<wireless.AuthenticationMethod>
@@ -386,37 +383,3 @@ types:
             wpaVersion: optional<wireless.WpaVersion>
             pmfNegotiated: optional<boolean>
             eapMethod: optional<EapMethod>
-
-    # =============================================================================
-    # FINDINGS
-    # =============================================================================
-    FindingSeverity:
-        enum:
-            - INFO
-            - LOW
-            - MEDIUM
-            - HIGH
-            - CRITICAL
-
-    FindingCategory:
-        enum:
-            - SECURITY_WEAKNESS
-            - CONFIGURATION_ISSUE
-            - POLICY_VIOLATION
-            - UNEXPECTED_BEHAVIOR
-            - ACCESS_CONTROL_BYPASS
-
-    Finding:
-        docs: |
-            Security finding generated from association validation.
-            Identifies gaps between advertised and actual security posture.
-        properties:
-            id: string
-            title: string
-            description: optional<string>
-            severity: FindingSeverity
-            category: FindingCategory
-            evidence: optional<string>
-            recommendation: optional<string>
-            relatedBssid: optional<string>
-            relatedSsid: optional<string>

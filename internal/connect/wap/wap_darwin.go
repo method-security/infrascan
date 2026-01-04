@@ -321,6 +321,104 @@ char* findDefaultWirelessInterface() {
         return copyNSStringToCString(name);
     }
 }
+
+// Network info for scan results
+typedef struct {
+    char* ssid;
+    char* bssid;
+    int rssi;
+    int security;
+} CWNetworkInfo;
+
+// Scan result containing array of networks
+typedef struct {
+    CWNetworkInfo* networks;
+    int count;
+} CWScanResult;
+
+// Free scan result memory
+void freeScanResult(CWScanResult* result) {
+    if (result->networks != NULL) {
+        for (int i = 0; i < result->count; i++) {
+            if (result->networks[i].ssid != NULL) {
+                free(result->networks[i].ssid);
+            }
+            if (result->networks[i].bssid != NULL) {
+                free(result->networks[i].bssid);
+            }
+        }
+        free(result->networks);
+        result->networks = NULL;
+    }
+    result->count = 0;
+}
+
+// Scan for available networks
+CWScanResult scanNetworks(char* interfaceName) {
+    CWScanResult result = {0};
+
+    @autoreleasepool {
+        CWWiFiClient* client = [CWWiFiClient sharedWiFiClient];
+        if (client == nil) {
+            return result;
+        }
+
+        CWInterface* iface = nil;
+        if (interfaceName != NULL) {
+            NSString* ifName = [NSString stringWithUTF8String:interfaceName];
+            iface = [client interfaceWithName:ifName];
+        } else {
+            iface = [client interface];
+        }
+
+        if (iface == nil) {
+            return result;
+        }
+
+        NSError* scanError = nil;
+        NSSet<CWNetwork*>* networks = [iface scanForNetworksWithName:nil error:&scanError];
+
+        if (networks == nil || [networks count] == 0) {
+            return result;
+        }
+
+        int count = (int)[networks count];
+        result.networks = (CWNetworkInfo*)malloc(count * sizeof(CWNetworkInfo));
+        if (result.networks == NULL) {
+            return result;
+        }
+
+        int i = 0;
+        for (CWNetwork* network in networks) {
+            result.networks[i].ssid = copyNSStringToCString([network ssid]);
+            result.networks[i].bssid = copyNSStringToCString([network bssid]);
+            result.networks[i].rssi = (int)[network rssiValue];
+
+            // Map security
+            result.networks[i].security = 0; // Default to open
+            if ([network supportsSecurity:kCWSecurityWPA3Personal] ||
+                [network supportsSecurity:kCWSecurityWPA3Enterprise] ||
+                [network supportsSecurity:kCWSecurityWPA3Transition]) {
+                result.networks[i].security = 11; // WPA3
+            } else if ([network supportsSecurity:kCWSecurityWPA2Enterprise]) {
+                result.networks[i].security = 9; // WPA2 Enterprise
+            } else if ([network supportsSecurity:kCWSecurityWPAEnterprise]) {
+                result.networks[i].security = 7; // WPA Enterprise
+            } else if ([network supportsSecurity:kCWSecurityWPA2Personal]) {
+                result.networks[i].security = 4; // WPA2 Personal
+            } else if ([network supportsSecurity:kCWSecurityWPAPersonal]) {
+                result.networks[i].security = 2; // WPA Personal
+            } else if ([network supportsSecurity:kCWSecurityWEP]) {
+                result.networks[i].security = 1; // WEP
+            }
+
+            i++;
+        }
+        result.count = i;
+    }
+
+    return result;
+}
 */
 import "C"
 
@@ -333,8 +431,8 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/Method-Security/infrascan/generated/go/associate"
 	"github.com/Method-Security/infrascan/generated/go/common"
+	"github.com/Method-Security/infrascan/generated/go/connect"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 )
 
@@ -420,7 +518,7 @@ func disconnectFromNetwork(ctx context.Context, interfaceName string) error {
 }
 
 // reconnectToOriginalNetwork reconnects to the original WiFi network.
-func reconnectToOriginalNetwork(ctx context.Context, interfaceName string, original *associate.OriginalNetworkState) error {
+func reconnectToOriginalNetwork(ctx context.Context, interfaceName string, original *connect.OriginalNetworkState) error {
 	if original == nil || !original.WasConnected {
 		return nil
 	}
@@ -485,7 +583,7 @@ func connectToNetwork(
 	interfaceName string,
 	targetSSID string,
 	targetBSSID string,
-	cred *associate.TestClientProfile,
+	cred *connect.TestClientProfile,
 	timeout int,
 ) *ConnectionResult {
 	log := svc1log.FromContext(ctx)
@@ -503,15 +601,15 @@ func connectToNetwork(
 	var cwResult C.CWConnectionResult
 
 	switch cred.CredentialType {
-	case associate.TestCredentialTypeNone:
+	case connect.TestCredentialTypeNone:
 		// Open network connection
 		cwResult = C.connectToOpenNetwork(cInterface, cSSID)
 		defer C.freeConnectionResult(&cwResult)
 
-	case associate.TestCredentialTypePskSimple, associate.TestCredentialTypePskCommon:
+	case connect.TestCredentialTypePskSimple, connect.TestCredentialTypePskCommon:
 		// PSK connection
 		if cred.Psk == nil || *cred.Psk == "" {
-			result.WithError(associate.AssociationOutcomeAuthFailed, "PSK credential required but not provided")
+			result.WithError(connect.ConnectionOutcomeAuthFailed, "PSK credential required but not provided")
 			return result
 		}
 		cPassword := C.CString(*cred.Psk)
@@ -520,15 +618,15 @@ func connectToNetwork(
 		cwResult = C.connectWithPSK(cInterface, cSSID, cPassword)
 		defer C.freeConnectionResult(&cwResult)
 
-	case associate.TestCredentialTypeEapTestIdentity, associate.TestCredentialTypeEapGuest:
+	case connect.TestCredentialTypeEapTestIdentity, connect.TestCredentialTypeEapGuest:
 		// EAP connection - not directly supported via CoreWLAN
 		// Would need to use profiles or networksetup command
 		log.Warn("EAP credentials not directly supported on macOS via CoreWLAN")
-		result.WithError(associate.AssociationOutcomeAuthFailed, "EAP authentication not supported via direct API on macOS")
+		result.WithError(connect.ConnectionOutcomeAuthFailed, "EAP authentication not supported via direct API on macOS")
 		return result
 
 	default:
-		result.WithError(associate.AssociationOutcomeUnknownError, fmt.Sprintf("unsupported credential type: %s", cred.CredentialType))
+		result.WithError(connect.ConnectionOutcomeUnknownError, fmt.Sprintf("unsupported credential type: %s", cred.CredentialType))
 		return result
 	}
 
@@ -538,7 +636,7 @@ func connectToNetwork(
 
 		// Set negotiated security info
 		if cwResult.security > 0 {
-			negSec := &associate.NegotiatedSecurity{}
+			negSec := &connect.NegotiatedSecurity{}
 			switch cwResult.security {
 			case 3:
 				wpaVer := common.WpaVersionWpa3
@@ -585,11 +683,11 @@ func connectToNetwork(
 
 		// Determine outcome based on error
 		if strings.Contains(errMsg, "not found") {
-			result.WithError(associate.AssociationOutcomeNetworkNotFound, errMsg)
+			result.WithError(connect.ConnectionOutcomeNetworkNotFound, errMsg)
 		} else if strings.Contains(errMsg, "Authentication") || strings.Contains(errMsg, "password") {
-			result.WithError(associate.AssociationOutcomeAuthFailed, errMsg)
+			result.WithError(connect.ConnectionOutcomeAuthFailed, errMsg)
 		} else {
-			result.WithError(associate.AssociationOutcomeAssocFailed, errMsg)
+			result.WithError(connect.ConnectionOutcomeAssocFailed, errMsg)
 		}
 	}
 

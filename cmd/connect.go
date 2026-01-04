@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	// Generated
-	associateFern "github.com/Method-Security/infrascan/generated/go/associate"
+	connectFern "github.com/Method-Security/infrascan/generated/go/connect"
 	// Internal
-	wapConnect "github.com/Method-Security/infrascan/internal/associate/wap"
+	wapConnect "github.com/Method-Security/infrascan/internal/connect/wap"
 	// External
 	"github.com/spf13/cobra"
 )
@@ -118,7 +118,7 @@ obtained or owned, it can secondarily be used to test the validity of those cred
 			}
 
 			// Build config
-			config := associateFern.ValidateAssociationConfig{}
+			config := connectFern.ValidateConnectionConfig{}
 			if interfaceName != "" {
 				config.Interface = &interfaceName
 			}
@@ -142,20 +142,20 @@ obtained or owned, it can secondarily be used to test the validity of those cred
 			}
 
 			// Build test credentials if provided
-			var testCredentials []*associateFern.TestClientProfile
+			var testCredentials []*connectFern.TestClientProfile
 			if testPSK != "" {
-				credType := associateFern.TestCredentialTypePskSimple
+				credType := connectFern.TestCredentialTypePskSimple
 				profileId := "cli-psk"
-				testCredentials = append(testCredentials, &associateFern.TestClientProfile{
+				testCredentials = append(testCredentials, &connectFern.TestClientProfile{
 					ProfileId:      profileId,
 					CredentialType: credType,
 					Psk:            &testPSK,
 				})
 			}
 			if testEAPIdentity != "" {
-				credType := associateFern.TestCredentialTypeEapTestIdentity
+				credType := connectFern.TestCredentialTypeEapTestIdentity
 				profileId := "cli-eap"
-				testCredentials = append(testCredentials, &associateFern.TestClientProfile{
+				testCredentials = append(testCredentials, &connectFern.TestClientProfile{
 					ProfileId:      profileId,
 					CredentialType: credType,
 					EapIdentity:    &testEAPIdentity,
@@ -177,7 +177,7 @@ obtained or owned, it can secondarily be used to test the validity of those cred
 				ctx = wapConnect.WithPlatformURL(ctx, platformURL)
 			}
 
-			report, err := wapConnect.ValidateAssociation(ctx, config)
+			report, err := wapConnect.ValidateConnection(ctx, config)
 			if err != nil {
 				a.OutputSignal.AddError(err)
 			}

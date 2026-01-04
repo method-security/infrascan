@@ -1,20 +1,20 @@
 package wap
 
-import "github.com/Method-Security/infrascan/generated/go/associate"
+import "github.com/Method-Security/infrascan/generated/go/connect"
 
 // ConnectionResult holds the result of a connection attempt.
 // This is populated by platform-specific code.
 type ConnectionResult struct {
-	Outcome            associate.AssociationOutcome
-	StatusCode         *associate.AssociationStatusCode
-	StatusCodeRaw      *int
-	ReasonCode         *associate.DeauthReasonCode
-	ReasonCodeRaw      *int
-	HandshakeProgress  *associate.HandshakeProgress
-	Timing             *associate.AssociationTiming
+	Outcome            connect.ConnectionOutcome
+	AssociationStatusCode         *connect.AssociationStatusCode
+	AssociationStatusCodeRaw      *int
+	DeauthReasonCode         *connect.DeauthReasonCode
+	DeauthReasonCodeRaw      *int
+	HandshakeProgress  *connect.HandshakeProgress
+	Timing             *connect.ConnectionTiming
 	RetryCount         *int
-	AttemptedSecurity  *associate.NegotiatedSecurity
-	NegotiatedSecurity *associate.NegotiatedSecurity
+	AttemptedSecurity  *connect.NegotiatedSecurity
+	NegotiatedSecurity *connect.NegotiatedSecurity
 	IpAcquired         *bool
 	IpAddress          *string
 	DhcpServer         *string
@@ -22,40 +22,40 @@ type ConnectionResult struct {
 	DnsServers         []string
 	PortalDetected     *bool
 	PortalUrl          *string
-	EapMethodNegotiated *associate.EapMethod
+	EapMethodNegotiated *connect.EapMethod
 	ErrorMessage       *string
-	PlatformConnectivity *associate.PlatformConnectivityResult
+	PlatformConnectivity *connect.PlatformConnectivityResult
 }
 
 // NewConnectionResult creates a new ConnectionResult with default values.
 func NewConnectionResult() *ConnectionResult {
 	return &ConnectionResult{
-		Outcome: associate.AssociationOutcomeUnknownError,
+		Outcome: connect.ConnectionOutcomeUnknownError,
 	}
 }
 
 // WithSuccess sets the result as successful.
 func (r *ConnectionResult) WithSuccess() *ConnectionResult {
-	r.Outcome = associate.AssociationOutcomeSuccess
+	r.Outcome = connect.ConnectionOutcomeSuccess
 	return r
 }
 
 // WithAuthFailed sets the result as authentication failed.
 func (r *ConnectionResult) WithAuthFailed(msg string) *ConnectionResult {
-	r.Outcome = associate.AssociationOutcomeAuthFailed
+	r.Outcome = connect.ConnectionOutcomeAuthFailed
 	r.ErrorMessage = &msg
 	return r
 }
 
 // WithTimeout sets the result as timed out.
 func (r *ConnectionResult) WithTimeout(msg string) *ConnectionResult {
-	r.Outcome = associate.AssociationOutcomeTimeout
+	r.Outcome = connect.ConnectionOutcomeTimeout
 	r.ErrorMessage = &msg
 	return r
 }
 
 // WithError sets the result with a generic error.
-func (r *ConnectionResult) WithError(outcome associate.AssociationOutcome, msg string) *ConnectionResult {
+func (r *ConnectionResult) WithError(outcome connect.ConnectionOutcome, msg string) *ConnectionResult {
 	r.Outcome = outcome
 	r.ErrorMessage = &msg
 	return r

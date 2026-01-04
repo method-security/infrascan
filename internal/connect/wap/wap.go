@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/Method-Security/infrascan/generated/go/associate"
+	"github.com/Method-Security/infrascan/generated/go/connect"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 )
 
@@ -111,7 +111,7 @@ func (s NetworkSecurityType) String() string {
 // validateCredentialsForSecurity checks that the required credentials are provided
 // for the detected network security type. Returns an error with a clear message
 // about what credentials are needed rather than prompting the user interactively.
-func validateCredentialsForSecurity(securityType NetworkSecurityType, testCredentials []*associate.TestClientProfile) error {
+func validateCredentialsForSecurity(securityType NetworkSecurityType, testCredentials []*connect.TestClientProfile) error {
 	switch securityType {
 	case NetworkSecurityOpen:
 		// Open networks don't require credentials
@@ -120,8 +120,8 @@ func validateCredentialsForSecurity(securityType NetworkSecurityType, testCreden
 	case NetworkSecurityPSK:
 		// PSK networks require a pre-shared key (8-63 characters per WPA spec)
 		for _, cred := range testCredentials {
-			if cred.CredentialType == associate.TestCredentialTypePskSimple ||
-				cred.CredentialType == associate.TestCredentialTypePskCommon {
+			if cred.CredentialType == connect.TestCredentialTypePskSimple ||
+				cred.CredentialType == connect.TestCredentialTypePskCommon {
 				if cred.Psk != nil && *cred.Psk != "" {
 					pskLen := len(*cred.Psk)
 					if pskLen < 8 {
@@ -142,8 +142,8 @@ func validateCredentialsForSecurity(securityType NetworkSecurityType, testCreden
 	case NetworkSecurityEAP:
 		// EAP networks require identity and password
 		for _, cred := range testCredentials {
-			if cred.CredentialType == associate.TestCredentialTypeEapTestIdentity ||
-				cred.CredentialType == associate.TestCredentialTypeEapGuest {
+			if cred.CredentialType == connect.TestCredentialTypeEapTestIdentity ||
+				cred.CredentialType == connect.TestCredentialTypeEapGuest {
 				if cred.EapIdentity != nil && *cred.EapIdentity != "" {
 					// Password can be empty for some EAP methods, but identity is required
 					return nil // EAP credentials provided
@@ -167,10 +167,10 @@ func validateCredentialsForSecurity(securityType NetworkSecurityType, testCreden
 	return nil
 }
 
-// ValidateAssociation performs active association validation against a target
+// ValidateConnection performs active connection validation against a target
 // wireless network. It attempts to connect using test credentials based on
 // the detected security configuration and records outcomes.
-func ValidateAssociation(ctx context.Context, config associate.ValidateAssociationConfig) (*associate.ValidateAssociationReport, error) {
+func ValidateConnection(ctx context.Context, config connect.ValidateConnectionConfig) (*connect.ValidateConnectionReport, error) {
 	log := svc1log.FromContext(ctx)
 	errors := []string{}
 
@@ -217,7 +217,7 @@ func ValidateAssociation(ctx context.Context, config associate.ValidateAssociati
 	}
 
 	// Capture original network state - we always save and restore
-	// This is core to the "associate" command's non-destructive behavior
+	// This is core to the "connect" command's non-destructive behavior
 	log.Info("Capturing current WiFi connection state")
 	originalNetwork := captureOriginalNetwork(ctx, interfaceName)
 	if originalNetwork.WasConnected {
@@ -238,8 +238,7 @@ func ValidateAssociation(ctx context.Context, config associate.ValidateAssociati
 	}
 
 	// Perform association attempts
-	attempts := []*associate.AssociationAttempt{}
-	var findings []*associate.Finding
+	attempts := []*connect.ConnectionAttempt{}
 
 	// Detect target network's security type before attempting connection
 	securityType := detectNetworkSecurity(ctx, interfaceName, targetSSID, targetBSSID)
@@ -256,8 +255,8 @@ func ValidateAssociation(ctx context.Context, config associate.ValidateAssociati
 	// If no credentials provided and network is open, use default no-credential profile
 	if len(testCredentials) == 0 {
 		if securityType == NetworkSecurityOpen {
-			noCredType := associate.TestCredentialTypeNone
-			testCredentials = []*associate.TestClientProfile{
+			noCredType := connect.TestCredentialTypeNone
+			testCredentials = []*connect.TestClientProfile{
 				{
 					ProfileId:      "default-none",
 					CredentialType: noCredType,
@@ -268,7 +267,7 @@ func ValidateAssociation(ctx context.Context, config associate.ValidateAssociati
 	}
 
 	connectionSucceeded := false
-	var platformResult *associate.PlatformConnectivityResult
+	var platformResult *connect.PlatformConnectivityResult
 	for _, cred := range testCredentials {
 		log.Info("Attempting connection with credential profile",
 			svc1log.SafeParam("profile_id", cred.ProfileId),
@@ -284,12 +283,8 @@ func ValidateAssociation(ctx context.Context, config associate.ValidateAssociati
 			svc1log.SafeParam("ip_acquired", ptrBool(attempt.IpAcquired)),
 			svc1log.SafeParam("portal_detected", ptrBool(attempt.PortalDetected)))
 
-		// Generate findings based on outcome
-		attemptFindings := analyzeAttempt(attempt, cred)
-		findings = append(findings, attemptFindings...)
-
 		// If successful with this credential, we can stop trying
-		if attempt.Outcome == associate.AssociationOutcomeSuccess {
+		if attempt.Outcome == connect.ConnectionOutcomeSuccess {
 			connectionSucceeded = true
 			// If platform connectivity was tested during connection (wpa_supplicant path),
 			// capture that result to avoid testing again after wpa_supplicant is killed
@@ -309,7 +304,7 @@ func ValidateAssociation(ctx context.Context, config associate.ValidateAssociati
 			platformResult = testPlatformConnectivity(ctx, config.PlatformUrl)
 		} else {
 			// Not tested
-			platformResult = &associate.PlatformConnectivityResult{
+			platformResult = &connect.PlatformConnectivityResult{
 				Tested: false,
 			}
 		}
@@ -383,15 +378,14 @@ func ValidateAssociation(ctx context.Context, config associate.ValidateAssociati
 	}
 
 	// Build result
-	result := &associate.ValidateAssociationResult{
+	result := &connect.ValidateConnectionResult{
 		Attempts:                attempts,
-		Findings:                findings,
 		OriginalNetworkRestored: &networkRestored,
 		OriginalNetwork:         originalNetwork,
 		PlatformConnectivity:    platformResult,
 	}
 
-	report := &associate.ValidateAssociationReport{
+	report := &connect.ValidateConnectionReport{
 		Config: &config,
 		Result: result,
 		Errors: errors,
@@ -399,7 +393,6 @@ func ValidateAssociation(ctx context.Context, config associate.ValidateAssociati
 
 	log.Info("Completed wireless connection test",
 		svc1log.SafeParam("attempts", len(attempts)),
-		svc1log.SafeParam("findings", len(findings)),
 		svc1log.SafeParam("errors", len(errors)))
 
 	return report, nil
@@ -409,8 +402,8 @@ func ValidateAssociation(ctx context.Context, config associate.ValidateAssociati
 // captured during the connection (for wpa_supplicant path where connectivity must be tested
 // while the supplicant is running).
 type performAssociationAttemptResult struct {
-	Attempt              *associate.AssociationAttempt
-	PlatformConnectivity *associate.PlatformConnectivityResult
+	Attempt              *connect.ConnectionAttempt
+	PlatformConnectivity *connect.PlatformConnectivityResult
 }
 
 // performAssociationAttempt executes a single association attempt with the given credentials.
@@ -421,12 +414,12 @@ func performAssociationAttempt(
 	interfaceName string,
 	targetSSID string,
 	targetBSSID string,
-	cred *associate.TestClientProfile,
+	cred *connect.TestClientProfile,
 	timeout int,
 ) *performAssociationAttemptResult {
 	startTime := time.Now()
 
-	attempt := &associate.AssociationAttempt{
+	attempt := &connect.ConnectionAttempt{
 		StartTime:          startTime,
 		CredentialTypeUsed: &cred.CredentialType,
 	}
@@ -450,10 +443,10 @@ func performAssociationAttempt(
 	endTime := time.Now()
 	attempt.EndTime = &endTime
 	attempt.Outcome = result.Outcome
-	attempt.StatusCode = result.StatusCode
-	attempt.StatusCodeRaw = result.StatusCodeRaw
-	attempt.ReasonCode = result.ReasonCode
-	attempt.ReasonCodeRaw = result.ReasonCodeRaw
+	attempt.AssociationStatusCode = result.AssociationStatusCode
+	attempt.AssociationStatusCodeRaw = result.AssociationStatusCodeRaw
+	attempt.DeauthReasonCode = result.DeauthReasonCode
+	attempt.DeauthReasonCodeRaw = result.DeauthReasonCodeRaw
 	attempt.HandshakeProgress = result.HandshakeProgress
 	attempt.Timing = result.Timing
 	attempt.RetryCount = result.RetryCount
@@ -475,88 +468,12 @@ func performAssociationAttempt(
 	}
 }
 
-// analyzeAttempt generates findings based on association attempt results.
-func analyzeAttempt(attempt *associate.AssociationAttempt, cred *associate.TestClientProfile) []*associate.Finding {
-	var findings []*associate.Finding
-
-	// Check if open network connected successfully
-	if attempt.Outcome == associate.AssociationOutcomeSuccess && cred.CredentialType == associate.TestCredentialTypeNone {
-		// Check if network is truly open (no authentication required)
-		if attempt.IpAcquired != nil && *attempt.IpAcquired {
-			if attempt.PortalDetected == nil || !*attempt.PortalDetected {
-				// Open network with direct IP access - potential security concern
-				finding := &associate.Finding{
-					Id:          "OPEN-NETWORK-ACCESS",
-					Title:       "Open Network Allows Direct Access",
-					Description: ptr("The network allows connection without authentication and provides direct IP access without a captive portal."),
-					Severity:    associate.FindingSeverityMedium,
-					Category:    associate.FindingCategorySecurityWeakness,
-					RelatedSsid: attempt.Ssid,
-				}
-				findings = append(findings, finding)
-			}
-		}
-	}
-
-	// Check for weak PSK acceptance
-	if attempt.Outcome == associate.AssociationOutcomeSuccess && cred.CredentialType == associate.TestCredentialTypePskCommon {
-		finding := &associate.Finding{
-			Id:            "WEAK-PSK-ACCEPTED",
-			Title:         "Weak PSK Accepted",
-			Description:   ptr("The network accepted a common/weak PSK password."),
-			Severity:      associate.FindingSeverityHigh,
-			Category:      associate.FindingCategorySecurityWeakness,
-			RelatedSsid:   attempt.Ssid,
-			RelatedBssid:  attempt.Bssid,
-			Evidence:      ptr(fmt.Sprintf("Credential type: %s", cred.CredentialType)),
-			Recommendation: ptr("Use a strong, unique PSK with at least 16 characters."),
-		}
-		findings = append(findings, finding)
-	}
-
-	// Check for captive portal without proper redirect
-	if attempt.PortalDetected != nil && *attempt.PortalDetected {
-		finding := &associate.Finding{
-			Id:          "CAPTIVE-PORTAL-DETECTED",
-			Title:       "Captive Portal Detected",
-			Description: ptr("A captive portal was detected on this network."),
-			Severity:    associate.FindingSeverityInfo,
-			Category:    associate.FindingCategoryUnexpectedBehavior,
-			RelatedSsid: attempt.Ssid,
-		}
-		if attempt.PortalUrl != nil {
-			finding.Evidence = attempt.PortalUrl
-		}
-		findings = append(findings, finding)
-	}
-
-	// Check for PMF not being negotiated on WPA3
-	if attempt.NegotiatedSecurity != nil {
-		if attempt.NegotiatedSecurity.WpaVersion != nil &&
-			*attempt.NegotiatedSecurity.WpaVersion == "WPA3" &&
-			(attempt.NegotiatedSecurity.PmfNegotiated == nil || !*attempt.NegotiatedSecurity.PmfNegotiated) {
-			finding := &associate.Finding{
-				Id:             "WPA3-NO-PMF",
-				Title:          "WPA3 Without Protected Management Frames",
-				Description:    ptr("WPA3 connection was established but PMF was not negotiated."),
-				Severity:       associate.FindingSeverityMedium,
-				Category:       associate.FindingCategoryConfigurationIssue,
-				RelatedSsid:    attempt.Ssid,
-				Recommendation: ptr("Ensure PMF is required for WPA3 networks."),
-			}
-			findings = append(findings, finding)
-		}
-	}
-
-	return findings
-}
-
 // testPlatformConnectivity makes an HTTP request to the specified URL and returns the result.
 // It follows redirects and checks for an HTTP 200 response.
-func testPlatformConnectivity(ctx context.Context, urlPtr *string) *associate.PlatformConnectivityResult {
+func testPlatformConnectivity(ctx context.Context, urlPtr *string) *connect.PlatformConnectivityResult {
 	log := svc1log.FromContext(ctx)
 
-	result := &associate.PlatformConnectivityResult{
+	result := &connect.PlatformConnectivityResult{
 		Tested: true,
 	}
 
@@ -629,10 +546,10 @@ func testPlatformConnectivity(ctx context.Context, urlPtr *string) *associate.Pl
 }
 
 // captureOriginalNetwork records the current WiFi connection state.
-func captureOriginalNetwork(ctx context.Context, interfaceName string) *associate.OriginalNetworkState {
+func captureOriginalNetwork(ctx context.Context, interfaceName string) *connect.OriginalNetworkState {
 	ssid, bssid, connected := getCurrentConnection(ctx, interfaceName)
 
-	state := &associate.OriginalNetworkState{
+	state := &connect.OriginalNetworkState{
 		WasConnected: connected,
 	}
 
