@@ -322,22 +322,22 @@ char* findDefaultWirelessInterface() {
     }
 }
 
-// Network info for scan results
+// Network info for scan results (prefixed to avoid conflict with discover module)
 typedef struct {
     char* ssid;
     char* bssid;
     int rssi;
     int security;
-} CWNetworkInfo;
+} WapNetworkInfo;
 
-// Scan result containing array of networks
+// Scan result containing array of networks (prefixed to avoid conflict with discover module)
 typedef struct {
-    CWNetworkInfo* networks;
+    WapNetworkInfo* networks;
     int count;
-} CWScanResult;
+} WapScanResult;
 
-// Free scan result memory
-void freeScanResult(CWScanResult* result) {
+// Free scan result memory (prefixed to avoid conflict with discover module)
+void wapFreeScanResult(WapScanResult* result) {
     if (result->networks != NULL) {
         for (int i = 0; i < result->count; i++) {
             if (result->networks[i].ssid != NULL) {
@@ -353,9 +353,9 @@ void freeScanResult(CWScanResult* result) {
     result->count = 0;
 }
 
-// Scan for available networks
-CWScanResult scanNetworks(char* interfaceName) {
-    CWScanResult result = {0};
+// Scan for available networks (prefixed to avoid conflict with discover module)
+WapScanResult wapScanNetworks(char* interfaceName) {
+    WapScanResult result = {0};
 
     @autoreleasepool {
         CWWiFiClient* client = [CWWiFiClient sharedWiFiClient];
@@ -383,7 +383,7 @@ CWScanResult scanNetworks(char* interfaceName) {
         }
 
         int count = (int)[networks count];
-        result.networks = (CWNetworkInfo*)malloc(count * sizeof(CWNetworkInfo));
+        result.networks = (WapNetworkInfo*)malloc(count * sizeof(WapNetworkInfo));
         if (result.networks == NULL) {
             return result;
         }
@@ -776,9 +776,9 @@ func detectNetworkSecurity(ctx context.Context, interfaceName string, targetSSID
 	}
 
 	// Scan for networks
-	var scanResult C.CWScanResult
-	scanResult = C.scanNetworks(cInterface)
-	defer C.freeScanResult(&scanResult)
+	var scanResult C.WapScanResult
+	scanResult = C.wapScanNetworks(cInterface)
+	defer C.wapFreeScanResult(&scanResult)
 
 	if scanResult.count == 0 {
 		log.Warn("No networks found during security detection scan")
