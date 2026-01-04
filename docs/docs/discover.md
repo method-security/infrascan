@@ -50,19 +50,19 @@ sudo iw dev wlo1 set power_save off
 
 ```bash
 # Scan using default interface (active mode, emits RF)
-  infrascan discover waps
+infrascan discover waps
 
-  # Scan with specific interface
-  infrascan discover waps --interface en0
+# Scan with specific interface
+infrascan discover waps --interface en0
 
-  # Scan for specific SSID
-  infrascan discover waps --target-ssid "CorpWiFi"
+# Scan for specific SSID
+infrascan discover waps --target-ssid "CorpWiFi"
 
-  # Passive mode - zero RF emissions (requires monitor mode)
-  infrascan discover waps --passive --interface wlan0mon
+# Passive mode - zero RF emissions (requires monitor mode)
+infrascan discover waps --passive --interface wlan0mon
 
-  # Scan with custom timeout
-  infrascan discover waps --timeout 60`
+# Scan with custom timeout
+infrascan discover waps --timeout 60`
 ```
 
 ### Help Text

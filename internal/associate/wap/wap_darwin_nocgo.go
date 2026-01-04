@@ -39,6 +39,16 @@ func findWirelessInterface(ctx context.Context) (string, error) {
 }
 
 // getCurrentConnection returns the current WiFi connection info without CGO.
+// getConnectionProfileName returns the network profile name on macOS.
+// On macOS, returns SSID for compatibility (no separate profile concept).
+func getConnectionProfileName(ctx context.Context, interfaceName string) string {
+	ssid, _, connected := getCurrentConnection(ctx, interfaceName)
+	if connected {
+		return ssid
+	}
+	return ""
+}
+
 func getCurrentConnection(ctx context.Context, interfaceName string) (ssid string, bssid string, connected bool) {
 	iface := interfaceName
 	if iface == "" {
@@ -140,5 +150,80 @@ func connectToNetwork(
 	result.WithError(associate.AssociationOutcomeDriverError,
 		"Direct WiFi connection requires CGO on macOS. Please build with CGO enabled.")
 	return result
+}
+
+// detectNetworkSecurity detects the security type of a target wireless network without CGO.
+// Uses the airport command to scan for networks and determine security.
+func detectNetworkSecurity(ctx context.Context, interfaceName string, targetSSID string, targetBSSID string) NetworkSecurityType {
+	// Use airport command to scan
+	cmd := exec.Command("/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport", "-s")
+	output, err := cmd.Output()
+	if err != nil {
+		return NetworkSecurityUnknown
+	}
+
+	// Parse output - format is:
+	// SSID BSSID RSSI CHANNEL HT CC SECURITY (with dashes as separator)
+	lines := strings.Split(string(output), "\n")
+	for i, line := range lines {
+		if i == 0 {
+			continue // Skip header line
+		}
+
+		// Parse fields - SSID can have spaces, so parse from the right
+		fields := strings.Fields(line)
+		if len(fields) < 7 {
+			continue
+		}
+
+		// Security is the last field
+		security := strings.ToUpper(fields[len(fields)-1])
+
+		// BSSID is typically in the format XX:XX:XX:XX:XX:XX, search for it
+		bssid := ""
+		for _, f := range fields {
+			if len(f) == 17 && strings.Count(f, ":") == 5 {
+				bssid = strings.ToUpper(f)
+				break
+			}
+		}
+
+		// SSID could be the first field or combined fields before BSSID
+		ssid := fields[0]
+
+		// Match by SSID or BSSID
+		matchSSID := targetSSID != "" && ssid == targetSSID
+		matchBSSID := targetBSSID != "" && strings.EqualFold(bssid, targetBSSID)
+
+		if matchSSID || matchBSSID {
+			return parseAirportSecurityType(security)
+		}
+	}
+
+	return NetworkSecurityUnknown
+}
+
+// parseAirportSecurityType parses the security string from airport -s output.
+func parseAirportSecurityType(security string) NetworkSecurityType {
+	if security == "NONE" || security == "--" || security == "" {
+		return NetworkSecurityOpen
+	}
+
+	// Check for Enterprise
+	if strings.Contains(security, "802.1X") || strings.Contains(security, "ENTERPRISE") {
+		return NetworkSecurityEAP
+	}
+
+	// WPA/WPA2/WPA3 without Enterprise = PSK
+	if strings.Contains(security, "WPA") {
+		return NetworkSecurityPSK
+	}
+
+	// WEP also requires a key
+	if strings.Contains(security, "WEP") {
+		return NetworkSecurityPSK
+	}
+
+	return NetworkSecurityUnknown
 }
 

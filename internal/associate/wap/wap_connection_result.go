@@ -8,6 +8,12 @@ type ConnectionResult struct {
 	Outcome            associate.AssociationOutcome
 	StatusCode         *associate.AssociationStatusCode
 	StatusCodeRaw      *int
+	ReasonCode         *associate.DeauthReasonCode
+	ReasonCodeRaw      *int
+	HandshakeProgress  *associate.HandshakeProgress
+	Timing             *associate.AssociationTiming
+	RetryCount         *int
+	AttemptedSecurity  *associate.NegotiatedSecurity
 	NegotiatedSecurity *associate.NegotiatedSecurity
 	IpAcquired         *bool
 	IpAddress          *string
@@ -18,6 +24,7 @@ type ConnectionResult struct {
 	PortalUrl          *string
 	EapMethodNegotiated *associate.EapMethod
 	ErrorMessage       *string
+	PlatformConnectivity *associate.PlatformConnectivityResult
 }
 
 // NewConnectionResult creates a new ConnectionResult with default values.

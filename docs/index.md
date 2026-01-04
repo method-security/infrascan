@@ -8,7 +8,7 @@ Hello and welcome to the infrascan documentation. While we always want to provid
 
 # About infrascan
 
-infrascan has been designed to provide security teams with an easy-to-use yet data-rich suite of open source intelligence (OSINT) capabilities to help them better understand the internet exposure of the networks they defend. Designed with data-modeling and data-integration needs in mind, infrascan can be used on its own as an interactive CLI, orchestrated as part of a broader data pipeline, or leveraged from within the Method Platform.
+infrascan is an Infrastructure and Wireless signal scanning and enumeration tool that provides security teams with data-rich insights into infrastructure resources and targets. Designed with data-modeling and data-integration needs in mind, infrascan can be used on its own as an interactive CLI, orchestrated as part of a broader data pipeline, or leveraged from within the Method Platform.
 
 The types of scans that infrascan can conduct are constantly growing. For the most up to date listing, please see the documentation [here](./docs/index.md)
 
@@ -28,11 +28,11 @@ For the full list of available installation options, please see the [Installatio
 #### Examples
 
 ```bash
-infrascan discover dns records --domain example.com
+infrascan discover waps
 ```
 
 ```bash
-infrascan discover dns certs --domain example.com
+infrascan connect wap --target-ssid testssid --test-psk testssidpsk --test-only
 ```
 
 ## Contributing

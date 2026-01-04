@@ -20,6 +20,11 @@ func getCurrentConnection(ctx context.Context, interfaceName string) (ssid strin
 	return "", "", false
 }
 
+// getConnectionProfileName is not supported on this platform.
+func getConnectionProfileName(ctx context.Context, interfaceName string) string {
+	return ""
+}
+
 // getSignalQuality is not supported on this platform.
 func getSignalQuality(ctx context.Context, interfaceName string, targetSSID string, targetBSSID string) int {
 	return 0
@@ -48,5 +53,10 @@ func connectToNetwork(
 	result.WithError(associate.AssociationOutcomeDriverError,
 		fmt.Sprintf("wireless operations not supported on %s", runtime.GOOS))
 	return result
+}
+
+// detectNetworkSecurity is not supported on this platform.
+func detectNetworkSecurity(ctx context.Context, interfaceName string, targetSSID string, targetBSSID string) NetworkSecurityType {
+	return NetworkSecurityUnknown
 }
 

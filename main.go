@@ -15,7 +15,7 @@ func main() {
 	infrascan := cmd.NewInfrascan(version)
 	infrascan.InitRootCommand()
 	infrascan.InitDiscoverCommand()
-	infrascan.InitAssociateCommand()
+	infrascan.InitConnectCommand()
 
 	if err := infrascan.RootCmd.Execute(); err != nil {
 		os.Exit(1)

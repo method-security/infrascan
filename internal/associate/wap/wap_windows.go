@@ -42,6 +42,17 @@ func findWirelessInterface(ctx context.Context) (string, error) {
 }
 
 // getCurrentConnection returns the current WiFi connection info on Windows.
+// getConnectionProfileName returns the saved WiFi profile name on Windows.
+// On Windows, the profile name is typically the same as the SSID.
+func getConnectionProfileName(ctx context.Context, interfaceName string) string {
+	// On Windows, get current SSID - profile names typically match
+	ssid, _, connected := getCurrentConnection(ctx, interfaceName)
+	if connected {
+		return ssid
+	}
+	return ""
+}
+
 func getCurrentConnection(ctx context.Context, interfaceName string) (ssid string, bssid string, connected bool) {
 	cmd := exec.Command("netsh", "wlan", "show", "interfaces")
 	output, err := cmd.Output()
@@ -569,5 +580,118 @@ func detectCaptivePortalWindows(ctx context.Context) (detected bool, portalURL s
 	}
 
 	return false, ""
+}
+
+// detectNetworkSecurity detects the security type of a target wireless network on Windows.
+// Uses netsh wlan show networks to scan for the network and determine its security configuration.
+func detectNetworkSecurity(ctx context.Context, interfaceName string, targetSSID string, targetBSSID string) NetworkSecurityType {
+	log := svc1log.FromContext(ctx)
+
+	// Use netsh to list networks
+	cmd := exec.Command("netsh", "wlan", "show", "networks", "mode=bssid")
+	output, err := cmd.Output()
+	if err != nil {
+		log.Warn("Failed to list networks for security detection",
+			svc1log.SafeParam("error", err.Error()))
+		return NetworkSecurityUnknown
+	}
+
+	// Parse netsh output
+	// Format:
+	// SSID 1 : NetworkName
+	//     Network type            : Infrastructure
+	//     Authentication          : WPA2-Personal
+	//     Encryption              : CCMP
+	//     BSSID 1                 : xx:xx:xx:xx:xx:xx
+	//         Signal              : 100%
+	//         ...
+
+	lines := strings.Split(string(output), "\n")
+	var currentSSID string
+	var currentAuth string
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+
+		// SSID line
+		if strings.HasPrefix(line, "SSID") && strings.Contains(line, ":") {
+			parts := strings.SplitN(line, ":", 2)
+			if len(parts) == 2 {
+				currentSSID = strings.TrimSpace(parts[1])
+			}
+			continue
+		}
+
+		// Authentication line
+		if strings.HasPrefix(line, "Authentication") && strings.Contains(line, ":") {
+			parts := strings.SplitN(line, ":", 2)
+			if len(parts) == 2 {
+				currentAuth = strings.TrimSpace(parts[1])
+			}
+			continue
+		}
+
+		// BSSID line
+		if strings.HasPrefix(line, "BSSID") && strings.Contains(line, ":") {
+			parts := strings.SplitN(line, ":", 2)
+			if len(parts) == 2 {
+				bssid := strings.ToUpper(strings.TrimSpace(parts[1]))
+
+				// Check if this matches our target
+				matchSSID := targetSSID != "" && currentSSID == targetSSID
+				matchBSSID := targetBSSID != "" && strings.EqualFold(bssid, targetBSSID)
+
+				if matchSSID || matchBSSID {
+					log.Debug("Found target network security",
+						svc1log.SafeParam("ssid", currentSSID),
+						svc1log.SafeParam("authentication", currentAuth))
+
+					return parseWindowsAuthType(currentAuth)
+				}
+			}
+		}
+	}
+
+	log.Warn("Target network not found in scan results",
+		svc1log.SafeParam("target_ssid", targetSSID),
+		svc1log.SafeParam("target_bssid", targetBSSID))
+	return NetworkSecurityUnknown
+}
+
+// parseWindowsAuthType parses the authentication string from netsh output.
+func parseWindowsAuthType(auth string) NetworkSecurityType {
+	auth = strings.ToUpper(auth)
+
+	// Open network
+	if auth == "OPEN" || auth == "" {
+		return NetworkSecurityOpen
+	}
+
+	// Enterprise variants
+	if strings.Contains(auth, "ENTERPRISE") || strings.Contains(auth, "802.1X") {
+		return NetworkSecurityEAP
+	}
+
+	// Personal/PSK variants
+	if strings.Contains(auth, "PERSONAL") || strings.Contains(auth, "PSK") {
+		return NetworkSecurityPSK
+	}
+
+	// WPA/WPA2/WPA3 without qualifier - check for common patterns
+	if strings.HasPrefix(auth, "WPA") {
+		// WPA2-Personal, WPA3-Personal, etc.
+		if strings.Contains(auth, "PERSONAL") {
+			return NetworkSecurityPSK
+		}
+		// Default to PSK for WPA without explicit enterprise
+		return NetworkSecurityPSK
+	}
+
+	// WEP
+	if strings.Contains(auth, "WEP") {
+		return NetworkSecurityPSK
+	}
+
+	return NetworkSecurityUnknown
 }
 

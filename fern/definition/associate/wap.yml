@@ -76,6 +76,82 @@ types:
             - UNKNOWN
 
     # =============================================================================
+    # HANDSHAKE PROGRESS
+    # =============================================================================
+    HandshakeProgress:
+        docs: |
+            Indicates how far the authentication handshake progressed before failure.
+            Useful for diagnosing why authentication failed - e.g., reaching 4WAY_MSG2
+            but not MSG3 typically indicates the AP rejected our password.
+        enum:
+            - NOT_STARTED
+            - SCANNING
+            - AUTHENTICATING
+            - ASSOCIATING
+            - ASSOCIATED
+            - FOUR_WAY_MSG1_RECEIVED
+            - FOUR_WAY_MSG2_SENT
+            - FOUR_WAY_MSG3_RECEIVED
+            - FOUR_WAY_MSG4_SENT
+            - GROUP_HANDSHAKE
+            - COMPLETED
+            - DISCONNECTED
+
+    # =============================================================================
+    # 802.11 REASON CODES (for deauth/disassoc - different from status codes)
+    # =============================================================================
+    DeauthReasonCode:
+        docs: |
+            802.11 Reason Codes for deauthentication/disassociation frames.
+            Different from Status Codes - these explain WHY a connection was terminated.
+            Key codes: FOUR_WAY_HANDSHAKE_TIMEOUT (15) = wrong PSK,
+            IEEE_802_1X_AUTH_FAILED (23) = EAP failure.
+        enum:
+            - UNSPECIFIED
+            - PREV_AUTH_NOT_VALID
+            - DEAUTH_LEAVING
+            - INACTIVITY
+            - AP_RESOURCE_FULL
+            - CLASS2_FRAME_FROM_NONAUTH
+            - CLASS3_FRAME_FROM_NONASSOC
+            - DISASSOC_LEAVING
+            - NOT_AUTHENTICATED
+            - UNACCEPTABLE_POWER_CAP
+            - UNACCEPTABLE_CHANNELS
+            - BSS_TRANSITION_DISASSOC
+            - INVALID_IE
+            - MIC_FAILURE
+            - FOUR_WAY_HANDSHAKE_TIMEOUT
+            - GROUP_KEY_HANDSHAKE_TIMEOUT
+            - IE_DIFFERENT
+            - INVALID_GROUP_CIPHER
+            - INVALID_PAIRWISE_CIPHER
+            - INVALID_AKMP
+            - UNSUPPORTED_RSN_VERSION
+            - INVALID_RSN_CAPABILITIES
+            - IEEE_802_1X_AUTH_FAILED
+            - CIPHER_REJECTED_BY_POLICY
+            - TDLS_TEARDOWN_UNREACHABLE
+            - TDLS_TEARDOWN_UNSPECIFIED
+            - DISASSOC_LOW_ACK
+            - UNKNOWN
+
+    # =============================================================================
+    # ASSOCIATION TIMING BREAKDOWN
+    # =============================================================================
+    AssociationTiming:
+        docs: |
+            Timing breakdown for association attempt phases.
+            Helps diagnose where delays or failures occurred.
+        properties:
+            scanDurationMs: optional<integer>
+            authenticationDurationMs: optional<integer>
+            associationDurationMs: optional<integer>
+            handshakeDurationMs: optional<integer>
+            dhcpDurationMs: optional<integer>
+            totalDurationMs: optional<integer>
+
+    # =============================================================================
     # EAP METHOD TYPES
     # =============================================================================
     EapMethod:
@@ -165,7 +241,24 @@ types:
             testCredentials: optional<list<TestClientProfile>>
             timeout: optional<integer>
             expectedSecurity: optional<SecurityExpectation>
-            breakAndRemakeWifiAssociation: optional<boolean>
+            testPlatformConnectivity:
+                docs: |
+                    If true, after successful connection, test HTTP connectivity to platformUrl.
+                    Requires platformUrl to be set.
+                type: optional<boolean>
+            platformUrl:
+                docs: |
+                    URL to test for platform connectivity (e.g., https://api.example.com/health).
+                    Required if testPlatformConnectivity is true.
+                    The tool will follow redirects and check for HTTP 200 response.
+                type: optional<string>
+            returnToOriginalWifiIfNoPlatformConnectivity:
+                docs: |
+                    Only used when testOnly is false (stay connected mode).
+                    If true and platform connectivity test fails, disconnect from target network
+                    and reconnect to original WiFi. If false, stay connected even if platform
+                    connectivity fails.
+                type: optional<boolean>
 
     SecurityExpectation:
         docs: |
@@ -186,6 +279,7 @@ types:
             findings: optional<list<Finding>>
             originalNetworkRestored: optional<boolean>
             originalNetwork: optional<OriginalNetworkState>
+            platformConnectivity: optional<PlatformConnectivityResult>
 
     ValidateAssociationReport:
         docs: |
@@ -205,9 +299,45 @@ types:
         properties:
             ssid: optional<string>
             bssid: optional<string>
+            connectionProfile: 
+                docs: NetworkManager connection profile name (Linux) or profile name (Windows)
+                type: optional<string>
             wasConnected: boolean
             restoredSuccessfully: optional<boolean>
             restoreError: optional<string>
+
+    # =============================================================================
+    # PLATFORM CONNECTIVITY TEST
+    # =============================================================================
+    PlatformConnectivityResult:
+        docs: |
+            Result of platform connectivity test performed after successful WiFi connection.
+            Tests HTTP connectivity to a specified URL to verify the network provides
+            access to required services.
+        properties:
+            tested:
+                docs: Whether the platform connectivity test was performed
+                type: boolean
+            url:
+                docs: The URL that was tested
+                type: optional<string>
+            success:
+                docs: Whether the HTTP request returned a 200 status code
+                type: optional<boolean>
+            statusCode:
+                docs: The HTTP status code received (if any)
+                type: optional<integer>
+            responseTimeMs:
+                docs: Response time in milliseconds
+                type: optional<integer>
+            error:
+                docs: Error message if the request failed
+                type: optional<string>
+            returnedToOriginal:
+                docs: |
+                    If returnToOriginalWifiIfNoPlatformConnectivity was true and connectivity
+                    failed, indicates whether we successfully returned to the original network
+                type: optional<boolean>
 
     # =============================================================================
     # ASSOCIATION ATTEMPT
@@ -224,6 +354,12 @@ types:
             outcome: AssociationOutcome
             statusCode: optional<AssociationStatusCode>
             statusCodeRaw: optional<integer>
+            reasonCode: optional<DeauthReasonCode>
+            reasonCodeRaw: optional<integer>
+            handshakeProgress: optional<HandshakeProgress>
+            timing: optional<AssociationTiming>
+            retryCount: optional<integer>
+            attemptedSecurity: optional<NegotiatedSecurity>
             negotiatedSecurity: optional<NegotiatedSecurity>
             ipAcquired: optional<boolean>
             ipAddress: optional<string>

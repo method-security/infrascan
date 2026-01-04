@@ -152,8 +152,8 @@ func scanAsUser(ctx context.Context, log svc1log.Logger, interfaceName string, t
 	}
 
 	// Fall back to iwlist
-	observations, channels, err = scanWithIwlist(ctx, interfaceName, timeout)
-	if err != nil {
+		observations, channels, err = scanWithIwlist(ctx, interfaceName, timeout)
+		if err != nil {
 		return nil, nil, fmt.Errorf("wireless scan failed (all methods exhausted): %w", err)
 	}
 
@@ -412,6 +412,8 @@ func parseNmcliSecurity(security string) *discover.SecurityConfiguration {
 	} else if strings.Contains(security, "WPA2") {
 		version := common.WpaVersionWpa2
 		config.WpaVersion = &version
+		auth := common.AuthenticationMethodPsk
+		config.AuthenticationMethod = &auth
 		keyMgmt := common.KeyManagementTypePsk
 		config.KeyManagement = []common.KeyManagementType{keyMgmt}
 		enc := common.EncryptionProtocolCcmp
@@ -419,6 +421,8 @@ func parseNmcliSecurity(security string) *discover.SecurityConfiguration {
 	} else if strings.Contains(security, "WPA1") || strings.Contains(security, "WPA ") {
 		version := common.WpaVersionWpa1
 		config.WpaVersion = &version
+		auth := common.AuthenticationMethodPsk
+		config.AuthenticationMethod = &auth
 		keyMgmt := common.KeyManagementTypePsk
 		config.KeyManagement = []common.KeyManagementType{keyMgmt}
 		enc := common.EncryptionProtocolTkip
@@ -626,6 +630,11 @@ func parseIwSecurity(section string) *discover.SecurityConfiguration {
 	if strings.Contains(section, "PSK") && config.KeyManagement == nil {
 		keyMgmt := common.KeyManagementTypePsk
 		config.KeyManagement = []common.KeyManagementType{keyMgmt}
+		// Set PSK auth method if not already set (e.g., for WPA/WPA2 Personal)
+		if config.AuthenticationMethod == nil {
+			auth := common.AuthenticationMethodPsk
+			config.AuthenticationMethod = &auth
+		}
 	}
 	if strings.Contains(section, "802.1X") || strings.Contains(section, "EAP") {
 		auth := common.AuthenticationMethodEap
@@ -876,6 +885,8 @@ func parseIwlistSecurity(section string) *discover.SecurityConfiguration {
 	if strings.Contains(section, "PSK") {
 		keyMgmt := common.KeyManagementTypePsk
 		config.KeyManagement = []common.KeyManagementType{keyMgmt}
+		auth := common.AuthenticationMethodPsk
+		config.AuthenticationMethod = &auth
 	}
 	if strings.Contains(section, "802.1x") || strings.Contains(section, "EAP") {
 		keyMgmt := common.KeyManagementTypeEap8021X

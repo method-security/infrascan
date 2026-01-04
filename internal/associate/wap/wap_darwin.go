@@ -349,6 +349,17 @@ func findWirelessInterface(ctx context.Context) (string, error) {
 }
 
 // getCurrentConnection returns the current WiFi connection info.
+// getConnectionProfileName returns the network profile name on macOS.
+// On macOS, there's no separate "profile" concept like NetworkManager;
+// connections use Keychain for credentials. Returns SSID for compatibility.
+func getConnectionProfileName(ctx context.Context, interfaceName string) string {
+	ssid, _, connected := getCurrentConnection(ctx, interfaceName)
+	if connected {
+		return ssid
+	}
+	return ""
+}
+
 func getCurrentConnection(ctx context.Context, interfaceName string) (ssid string, bssid string, connected bool) {
 	var cInterface *C.char
 	if interfaceName != "" {
@@ -647,5 +658,71 @@ func detectCaptivePortal(ctx context.Context) (detected bool, portalURL string) 
 	}
 
 	return false, ""
+}
+
+// detectNetworkSecurity detects the security type of a target wireless network on macOS.
+// Uses CoreWLAN to scan for the network and determine its security configuration.
+func detectNetworkSecurity(ctx context.Context, interfaceName string, targetSSID string, targetBSSID string) NetworkSecurityType {
+	log := svc1log.FromContext(ctx)
+
+	var cInterface *C.char
+	if interfaceName != "" {
+		cInterface = C.CString(interfaceName)
+		defer C.free(unsafe.Pointer(cInterface))
+	}
+
+	// Scan for networks
+	var scanResult C.CWScanResult
+	scanResult = C.scanNetworks(cInterface)
+	defer C.freeScanResult(&scanResult)
+
+	if scanResult.count == 0 {
+		log.Warn("No networks found during security detection scan")
+		return NetworkSecurityUnknown
+	}
+
+	// Parse scan results to find target network
+	for i := C.int(0); i < scanResult.count; i++ {
+		network := scanResult.networks[i]
+		ssid := C.GoString(network.ssid)
+		bssid := strings.ToUpper(C.GoString(network.bssid))
+
+		// Match by SSID or BSSID
+		matchSSID := targetSSID != "" && ssid == targetSSID
+		matchBSSID := targetBSSID != "" && strings.EqualFold(bssid, targetBSSID)
+
+		if matchSSID || matchBSSID {
+			// Map security value from CoreWLAN
+			// CWSecurity enum values (from Apple documentation):
+			// 0 = None/Open, 1 = WEP, 2 = WPA Personal, 3 = WPA Personal Mixed,
+			// 4 = WPA2 Personal, 5 = Personal, 6 = Dynamic WEP, 7 = WPA Enterprise,
+			// 8 = WPA Enterprise Mixed, 9 = WPA2 Enterprise, 10 = Enterprise,
+			// 11 = WPA3 Personal, 12 = WPA3 Enterprise, 13 = WPA3 Transition
+			security := int(network.security)
+			log.Debug("Found target network security",
+				svc1log.SafeParam("ssid", ssid),
+				svc1log.SafeParam("security_value", security))
+
+			switch security {
+			case 0: // Open
+				return NetworkSecurityOpen
+			case 1: // WEP
+				return NetworkSecurityPSK
+			case 2, 3, 4, 5, 11, 13: // WPA/WPA2/WPA3 Personal variants
+				return NetworkSecurityPSK
+			case 6, 7, 8, 9, 10, 12: // Enterprise variants
+				return NetworkSecurityEAP
+			default:
+				log.Warn("Unknown security type from CoreWLAN",
+					svc1log.SafeParam("security_value", security))
+				return NetworkSecurityUnknown
+			}
+		}
+	}
+
+	log.Warn("Target network not found in scan results",
+		svc1log.SafeParam("target_ssid", targetSSID),
+		svc1log.SafeParam("target_bssid", targetBSSID))
+	return NetworkSecurityUnknown
 }
 

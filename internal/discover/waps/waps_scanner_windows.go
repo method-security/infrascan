@@ -307,6 +307,8 @@ func parseWindowsSecurity(auth, encryption string) *discover.SecurityConfigurati
 		version := common.WpaVersionWpa2
 		config.WpaVersion = &version
 		if strings.Contains(auth, "Personal") {
+			authMethod := common.AuthenticationMethodPsk
+			config.AuthenticationMethod = &authMethod
 			keyMgmt := common.KeyManagementTypePsk
 			config.KeyManagement = []common.KeyManagementType{keyMgmt}
 		} else if strings.Contains(auth, "Enterprise") {
@@ -319,6 +321,8 @@ func parseWindowsSecurity(auth, encryption string) *discover.SecurityConfigurati
 		version := common.WpaVersionWpa1
 		config.WpaVersion = &version
 		if strings.Contains(auth, "Personal") {
+			authMethod := common.AuthenticationMethodPsk
+			config.AuthenticationMethod = &authMethod
 			keyMgmt := common.KeyManagementTypePsk
 			config.KeyManagement = []common.KeyManagementType{keyMgmt}
 		}

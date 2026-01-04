@@ -6,12 +6,166 @@ package wap
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"runtime"
 	"time"
 
 	"github.com/Method-Security/infrascan/generated/go/associate"
 	"github.com/palantir/witchcraft-go-logging/wlog/svclog/svc1log"
 )
+
+type allowDesktopPopupsCtxKey struct{}
+
+// WithAllowDesktopPopups sets whether infrascan is allowed to trigger desktop/OS
+// password dialogs (e.g., NetworkManager secret agent popups) during association attempts.
+//
+// Default behavior should be "false" (no popups). If popups are disallowed, platform
+// implementations may refuse to attempt certain association operations that are known
+// to trigger OS UI on authentication failure.
+func WithAllowDesktopPopups(ctx context.Context, allow bool) context.Context {
+	return context.WithValue(ctx, allowDesktopPopupsCtxKey{}, allow)
+}
+
+func allowDesktopPopups(ctx context.Context) bool {
+	if ctx == nil {
+		return false
+	}
+	v := ctx.Value(allowDesktopPopupsCtxKey{})
+	allowed, ok := v.(bool)
+	return ok && allowed
+}
+
+type testOnlyCtxKey struct{}
+
+// WithTestOnly sets whether infrascan should disconnect and restore the original
+// WiFi connection after a successful connection test.
+//
+// When testOnly is true (default): After testing, disconnect from the target network
+// and restore the original WiFi connection.
+//
+// When testOnly is false: Stay connected to the target network on success.
+// The original network will NOT be restored.
+func WithTestOnly(ctx context.Context, testOnly bool) context.Context {
+	return context.WithValue(ctx, testOnlyCtxKey{}, testOnly)
+}
+
+func isTestOnly(ctx context.Context) bool {
+	if ctx == nil {
+		return true // Default to test-only mode
+	}
+	v := ctx.Value(testOnlyCtxKey{})
+	testOnly, ok := v.(bool)
+	if !ok {
+		return true // Default to test-only mode
+	}
+	return testOnly
+}
+
+type platformURLCtxKey struct{}
+
+// WithPlatformURL sets the URL to test for platform connectivity after successful connection.
+func WithPlatformURL(ctx context.Context, url string) context.Context {
+	return context.WithValue(ctx, platformURLCtxKey{}, url)
+}
+
+func getPlatformURL(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+	v := ctx.Value(platformURLCtxKey{})
+	url, ok := v.(string)
+	if !ok {
+		return ""
+	}
+	return url
+}
+
+// NetworkSecurityType represents the detected security type of a wireless network.
+type NetworkSecurityType int
+
+const (
+	// NetworkSecurityUnknown indicates the security type could not be determined.
+	NetworkSecurityUnknown NetworkSecurityType = iota
+	// NetworkSecurityOpen indicates an open network with no authentication required.
+	NetworkSecurityOpen
+	// NetworkSecurityPSK indicates WPA/WPA2/WPA3-Personal requiring a pre-shared key.
+	NetworkSecurityPSK
+	// NetworkSecurityEAP indicates WPA/WPA2/WPA3-Enterprise requiring EAP identity/password.
+	NetworkSecurityEAP
+)
+
+// String returns a human-readable name for the security type.
+func (s NetworkSecurityType) String() string {
+	switch s {
+	case NetworkSecurityOpen:
+		return "Open"
+	case NetworkSecurityPSK:
+		return "WPA-Personal (PSK)"
+	case NetworkSecurityEAP:
+		return "WPA-Enterprise (EAP)"
+	default:
+		return "Unknown"
+	}
+}
+
+// validateCredentialsForSecurity checks that the required credentials are provided
+// for the detected network security type. Returns an error with a clear message
+// about what credentials are needed rather than prompting the user interactively.
+func validateCredentialsForSecurity(securityType NetworkSecurityType, testCredentials []*associate.TestClientProfile) error {
+	switch securityType {
+	case NetworkSecurityOpen:
+		// Open networks don't require credentials
+		return nil
+
+	case NetworkSecurityPSK:
+		// PSK networks require a pre-shared key (8-63 characters per WPA spec)
+		for _, cred := range testCredentials {
+			if cred.CredentialType == associate.TestCredentialTypePskSimple ||
+				cred.CredentialType == associate.TestCredentialTypePskCommon {
+				if cred.Psk != nil && *cred.Psk != "" {
+					pskLen := len(*cred.Psk)
+					if pskLen < 8 {
+						return fmt.Errorf("invalid PSK: password is %d characters but WPA/WPA2 requires 8-63 characters. "+
+							"Please provide a valid pre-shared key", pskLen)
+					}
+					if pskLen > 63 {
+						return fmt.Errorf("invalid PSK: password is %d characters but WPA/WPA2 requires 8-63 characters. "+
+							"Please provide a valid pre-shared key", pskLen)
+					}
+					return nil // PSK provided and valid length
+				}
+			}
+		}
+		return fmt.Errorf("no credentials provided: target network requires WPA-Personal (PSK) authentication. " +
+			"Please provide the pre-shared key using --test-psk <password>")
+
+	case NetworkSecurityEAP:
+		// EAP networks require identity and password
+		for _, cred := range testCredentials {
+			if cred.CredentialType == associate.TestCredentialTypeEapTestIdentity ||
+				cred.CredentialType == associate.TestCredentialTypeEapGuest {
+				if cred.EapIdentity != nil && *cred.EapIdentity != "" {
+					// Password can be empty for some EAP methods, but identity is required
+					return nil // EAP credentials provided
+				}
+			}
+		}
+		return fmt.Errorf("no credentials provided: target network requires WPA-Enterprise (EAP) authentication. " +
+			"Please provide the EAP identity and password using --test-eap-identity <identity> --test-eap-password <password>")
+
+	case NetworkSecurityUnknown:
+		// If we can't determine security type, we need explicit credentials
+		if len(testCredentials) == 0 {
+			return fmt.Errorf("no credentials provided and network security type could not be determined. " +
+				"Please provide credentials explicitly: " +
+				"for WPA-Personal use --test-psk <password>, " +
+				"for WPA-Enterprise use --test-eap-identity <identity> --test-eap-password <password>, " +
+				"or the network may be open and no credentials are needed")
+		}
+		return nil
+	}
+	return nil
+}
 
 // ValidateAssociation performs active association validation against a target
 // wireless network. It attempts to connect using test credentials based on
@@ -40,17 +194,11 @@ func ValidateAssociation(ctx context.Context, config associate.ValidateAssociati
 		timeout = *config.Timeout
 	}
 
-	breakAndRemake := false
-	if config.BreakAndRemakeWifiAssociation != nil {
-		breakAndRemake = *config.BreakAndRemakeWifiAssociation
-	}
-
-	log.Info("Starting wireless association validation",
+	log.Info("Starting wireless connection test",
 		svc1log.SafeParam("interface", interfaceName),
 		svc1log.SafeParam("target_ssid", targetSSID),
 		svc1log.SafeParam("target_bssid", targetBSSID),
 		svc1log.SafeParam("timeout", timeout),
-		svc1log.SafeParam("break_and_remake", breakAndRemake),
 		svc1log.SafeParam("os", runtime.GOOS))
 
 	// Validate target is specified
@@ -68,21 +216,15 @@ func ValidateAssociation(ctx context.Context, config associate.ValidateAssociati
 		log.Info("Auto-detected wireless interface", svc1log.SafeParam("interface", interfaceName))
 	}
 
-	// Capture original network state if break-and-remake is enabled
-	var originalNetwork *associate.OriginalNetworkState
-	if breakAndRemake {
-		log.Info("Checking current WiFi connection for break-and-remake")
-		originalNetwork = captureOriginalNetwork(ctx, interfaceName)
-		if originalNetwork.WasConnected {
-			log.Info("Currently connected to WiFi, will restore after validation",
-				svc1log.SafeParam("original_ssid", ptrStr(originalNetwork.Ssid)))
-		} else {
-			log.Info("Not currently connected to WiFi, skipping break-and-remake logic")
-		}
-	}
-
-	// Disconnect from current network if needed
-	if breakAndRemake && originalNetwork != nil && originalNetwork.WasConnected {
+	// Capture original network state - we always save and restore
+	// This is core to the "associate" command's non-destructive behavior
+	log.Info("Capturing current WiFi connection state")
+	originalNetwork := captureOriginalNetwork(ctx, interfaceName)
+	if originalNetwork.WasConnected {
+		log.Info("Currently connected to WiFi, will restore after validation",
+			svc1log.SafeParam("original_ssid", ptrStr(originalNetwork.Ssid)))
+		
+		// Disconnect from current network before testing
 		log.Info("Disconnecting from current network for validation")
 		if err := disconnectFromNetwork(ctx, interfaceName); err != nil {
 			log.Warn("Failed to disconnect from current network",
@@ -91,35 +233,53 @@ func ValidateAssociation(ctx context.Context, config associate.ValidateAssociati
 		}
 		// Give time for disconnection to complete
 		time.Sleep(2 * time.Second)
+	} else {
+		log.Info("Not currently connected to WiFi")
 	}
 
 	// Perform association attempts
 	attempts := []*associate.AssociationAttempt{}
 	var findings []*associate.Finding
 
-	// Try connecting with different credential types based on config
+	// Detect target network's security type before attempting connection
+	securityType := detectNetworkSecurity(ctx, interfaceName, targetSSID, targetBSSID)
+	log.Info("Detected target network security",
+		svc1log.SafeParam("security_type", securityType),
+		svc1log.SafeParam("target_ssid", targetSSID))
+
+	// Validate that required credentials are provided (no prompts, explicit errors)
 	testCredentials := config.TestCredentials
-	if len(testCredentials) == 0 {
-		// Default: try no credentials (for open networks)
-		noCredType := associate.TestCredentialTypeNone
-		testCredentials = []*associate.TestClientProfile{
-			{
-				ProfileId:      "default-none",
-				CredentialType: noCredType,
-			},
-		}
+	if err := validateCredentialsForSecurity(securityType, testCredentials); err != nil {
+		return nil, err
 	}
 
+	// If no credentials provided and network is open, use default no-credential profile
+	if len(testCredentials) == 0 {
+		if securityType == NetworkSecurityOpen {
+			noCredType := associate.TestCredentialTypeNone
+			testCredentials = []*associate.TestClientProfile{
+				{
+					ProfileId:      "default-none",
+					CredentialType: noCredType,
+				},
+			}
+		}
+		// If security type required credentials, validateCredentialsForSecurity would have returned error
+	}
+
+	connectionSucceeded := false
+	var platformResult *associate.PlatformConnectivityResult
 	for _, cred := range testCredentials {
-		log.Info("Attempting association with credential profile",
+		log.Info("Attempting connection with credential profile",
 			svc1log.SafeParam("profile_id", cred.ProfileId),
 			svc1log.SafeParam("credential_type", cred.CredentialType))
 
-		attempt := performAssociationAttempt(ctx, interfaceName, targetSSID, targetBSSID, cred, timeout)
+		attemptResult := performAssociationAttempt(ctx, interfaceName, targetSSID, targetBSSID, cred, timeout)
+		attempt := attemptResult.Attempt
 		attempts = append(attempts, attempt)
 
 		// Log outcome
-		log.Info("Association attempt completed",
+		log.Info("Connection attempt completed",
 			svc1log.SafeParam("outcome", attempt.Outcome),
 			svc1log.SafeParam("ip_acquired", ptrBool(attempt.IpAcquired)),
 			svc1log.SafeParam("portal_detected", ptrBool(attempt.PortalDetected)))
@@ -130,15 +290,72 @@ func ValidateAssociation(ctx context.Context, config associate.ValidateAssociati
 
 		// If successful with this credential, we can stop trying
 		if attempt.Outcome == associate.AssociationOutcomeSuccess {
+			connectionSucceeded = true
+			// If platform connectivity was tested during connection (wpa_supplicant path),
+			// capture that result to avoid testing again after wpa_supplicant is killed
+			if attemptResult.PlatformConnectivity != nil {
+				platformResult = attemptResult.PlatformConnectivity
+			}
 			break
 		}
 	}
 
-	// Restore original network connection if break-and-remake was used
+	// Test platform connectivity if enabled and connection succeeded
+	// Only test if we haven't already captured a result during connection
+	if platformResult == nil {
+		if connectionSucceeded && config.TestPlatformConnectivity != nil && *config.TestPlatformConnectivity {
+			// Connection succeeded and we need to test platform connectivity
+			// This works for nmcli path where connection stays up after function returns
+			platformResult = testPlatformConnectivity(ctx, config.PlatformUrl)
+		} else {
+			// Not tested
+			platformResult = &associate.PlatformConnectivityResult{
+				Tested: false,
+			}
+		}
+	}
+
+	// Determine whether to restore original network or stay connected
+	testOnly := isTestOnly(ctx)
 	networkRestored := false
-	if breakAndRemake && originalNetwork != nil && originalNetwork.WasConnected {
+
+	// Check if we should return to original due to platform connectivity failure
+	returnDueToPlatformFailure := false
+	if !testOnly && connectionSucceeded && platformResult.Tested {
+		if config.ReturnToOriginalWifiIfNoPlatformConnectivity != nil &&
+			*config.ReturnToOriginalWifiIfNoPlatformConnectivity &&
+			(platformResult.Success == nil || !*platformResult.Success) {
+			returnDueToPlatformFailure = true
+			log.Info("Platform connectivity test failed, will return to original network",
+				svc1log.SafeParam("url", ptrStr(platformResult.Url)))
+		}
+	}
+
+	if !testOnly && connectionSucceeded && !returnDueToPlatformFailure {
+		// User wants to stay connected to the target network
+		log.Info("Connection successful, staying connected to target network (--test-only=false)",
+			svc1log.SafeParam("target_ssid", targetSSID))
+		// Mark that we intentionally did not restore
+		if originalNetwork != nil {
+			originalNetwork.RestoredSuccessfully = ptr(false)
+			skipMsg := "not restored: --test-only=false and connection succeeded"
+			if platformResult.Tested && platformResult.Success != nil && *platformResult.Success {
+				skipMsg = "not restored: --test-only=false, connection succeeded, and platform connectivity verified"
+			}
+			originalNetwork.RestoreError = &skipMsg
+		}
+	} else if originalNetwork != nil && originalNetwork.WasConnected {
+		// Test-only mode OR connection failed OR platform connectivity failed: restore original network
+		restoreReason := "test-only mode"
+		if !connectionSucceeded {
+			restoreReason = "connection failed"
+		} else if returnDueToPlatformFailure {
+			restoreReason = "platform connectivity failed"
+		}
+
 		log.Info("Restoring connection to original network",
-			svc1log.SafeParam("original_ssid", ptrStr(originalNetwork.Ssid)))
+			svc1log.SafeParam("original_ssid", ptrStr(originalNetwork.Ssid)),
+			svc1log.SafeParam("reason", restoreReason))
 
 		// First disconnect from test network
 		_ = disconnectFromNetwork(ctx, interfaceName)
@@ -152,10 +369,16 @@ func ValidateAssociation(ctx context.Context, config associate.ValidateAssociati
 			failedMsg := err.Error()
 			originalNetwork.RestoredSuccessfully = ptr(false)
 			originalNetwork.RestoreError = &failedMsg
+			if returnDueToPlatformFailure {
+				platformResult.ReturnedToOriginal = ptr(false)
+			}
 		} else {
 			log.Info("Successfully restored original network connection")
 			originalNetwork.RestoredSuccessfully = ptr(true)
 			networkRestored = true
+			if returnDueToPlatformFailure {
+				platformResult.ReturnedToOriginal = ptr(true)
+			}
 		}
 	}
 
@@ -165,6 +388,7 @@ func ValidateAssociation(ctx context.Context, config associate.ValidateAssociati
 		Findings:                findings,
 		OriginalNetworkRestored: &networkRestored,
 		OriginalNetwork:         originalNetwork,
+		PlatformConnectivity:    platformResult,
 	}
 
 	report := &associate.ValidateAssociationReport{
@@ -173,7 +397,7 @@ func ValidateAssociation(ctx context.Context, config associate.ValidateAssociati
 		Errors: errors,
 	}
 
-	log.Info("Completed wireless association validation",
+	log.Info("Completed wireless connection test",
 		svc1log.SafeParam("attempts", len(attempts)),
 		svc1log.SafeParam("findings", len(findings)),
 		svc1log.SafeParam("errors", len(errors)))
@@ -181,7 +405,17 @@ func ValidateAssociation(ctx context.Context, config associate.ValidateAssociati
 	return report, nil
 }
 
+// performAssociationAttemptResult holds both the attempt and any platform connectivity result
+// captured during the connection (for wpa_supplicant path where connectivity must be tested
+// while the supplicant is running).
+type performAssociationAttemptResult struct {
+	Attempt              *associate.AssociationAttempt
+	PlatformConnectivity *associate.PlatformConnectivityResult
+}
+
 // performAssociationAttempt executes a single association attempt with the given credentials.
+// It returns both the attempt details and any platform connectivity result that was captured
+// during the connection (for connections that require testing while wpa_supplicant is active).
 func performAssociationAttempt(
 	ctx context.Context,
 	interfaceName string,
@@ -189,7 +423,7 @@ func performAssociationAttempt(
 	targetBSSID string,
 	cred *associate.TestClientProfile,
 	timeout int,
-) *associate.AssociationAttempt {
+) *performAssociationAttemptResult {
 	startTime := time.Now()
 
 	attempt := &associate.AssociationAttempt{
@@ -218,6 +452,12 @@ func performAssociationAttempt(
 	attempt.Outcome = result.Outcome
 	attempt.StatusCode = result.StatusCode
 	attempt.StatusCodeRaw = result.StatusCodeRaw
+	attempt.ReasonCode = result.ReasonCode
+	attempt.ReasonCodeRaw = result.ReasonCodeRaw
+	attempt.HandshakeProgress = result.HandshakeProgress
+	attempt.Timing = result.Timing
+	attempt.RetryCount = result.RetryCount
+	attempt.AttemptedSecurity = result.AttemptedSecurity
 	attempt.NegotiatedSecurity = result.NegotiatedSecurity
 	attempt.IpAcquired = result.IpAcquired
 	attempt.IpAddress = result.IpAddress
@@ -229,7 +469,10 @@ func performAssociationAttempt(
 	attempt.EapMethodNegotiated = result.EapMethodNegotiated
 	attempt.ErrorMessage = result.ErrorMessage
 
-	return attempt
+	return &performAssociationAttemptResult{
+		Attempt:              attempt,
+		PlatformConnectivity: result.PlatformConnectivity,
+	}
 }
 
 // analyzeAttempt generates findings based on association attempt results.
@@ -308,6 +551,83 @@ func analyzeAttempt(attempt *associate.AssociationAttempt, cred *associate.TestC
 	return findings
 }
 
+// testPlatformConnectivity makes an HTTP request to the specified URL and returns the result.
+// It follows redirects and checks for an HTTP 200 response.
+func testPlatformConnectivity(ctx context.Context, urlPtr *string) *associate.PlatformConnectivityResult {
+	log := svc1log.FromContext(ctx)
+
+	result := &associate.PlatformConnectivityResult{
+		Tested: true,
+	}
+
+	if urlPtr == nil || *urlPtr == "" {
+		result.Tested = false
+		errMsg := "no URL provided"
+		result.Error = &errMsg
+		return result
+	}
+
+	url := *urlPtr
+	result.Url = &url
+
+	log.Info("Testing platform connectivity", svc1log.SafeParam("url", url))
+
+	// Create HTTP client that follows redirects
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+		// Default behavior follows redirects (up to 10)
+	}
+
+	startTime := time.Now()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		errMsg := fmt.Sprintf("failed to create request: %v", err)
+		result.Error = &errMsg
+		success := false
+		result.Success = &success
+		log.Warn("Platform connectivity test failed", svc1log.SafeParam("error", errMsg))
+		return result
+	}
+
+	// Set a reasonable user agent
+	req.Header.Set("User-Agent", "infrascan/1.0 (platform-connectivity-test)")
+
+	resp, err := client.Do(req)
+	responseTime := int(time.Since(startTime).Milliseconds())
+	result.ResponseTimeMs = &responseTime
+
+	if err != nil {
+		errMsg := fmt.Sprintf("request failed: %v", err)
+		result.Error = &errMsg
+		success := false
+		result.Success = &success
+		log.Warn("Platform connectivity test failed",
+			svc1log.SafeParam("error", errMsg),
+			svc1log.SafeParam("response_time_ms", responseTime))
+		return result
+	}
+	defer resp.Body.Close()
+
+	result.StatusCode = &resp.StatusCode
+	success := resp.StatusCode == http.StatusOK
+	result.Success = &success
+
+	if success {
+		log.Info("Platform connectivity test passed",
+			svc1log.SafeParam("status_code", resp.StatusCode),
+			svc1log.SafeParam("response_time_ms", responseTime))
+	} else {
+		errMsg := fmt.Sprintf("unexpected status code: %d", resp.StatusCode)
+		result.Error = &errMsg
+		log.Warn("Platform connectivity test failed",
+			svc1log.SafeParam("status_code", resp.StatusCode),
+			svc1log.SafeParam("response_time_ms", responseTime))
+	}
+
+	return result
+}
+
 // captureOriginalNetwork records the current WiFi connection state.
 func captureOriginalNetwork(ctx context.Context, interfaceName string) *associate.OriginalNetworkState {
 	ssid, bssid, connected := getCurrentConnection(ctx, interfaceName)
@@ -322,6 +642,12 @@ func captureOriginalNetwork(ctx context.Context, interfaceName string) *associat
 		}
 		if bssid != "" {
 			state.Bssid = &bssid
+		}
+		// Capture the connection profile name (Linux: NetworkManager profile, Windows: profile name)
+		// This is more reliable for restoration than SSID-based reconnection
+		profileName := getConnectionProfileName(ctx, interfaceName)
+		if profileName != "" {
+			state.ConnectionProfile = &profileName
 		}
 	}
 
