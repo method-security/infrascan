@@ -655,15 +655,15 @@ func connectToNetwork(
 
 		// Check for IP and DHCP
 		ipAcquired, ipAddr, gateway, dnsServers := waitForDHCP(ctx, interfaceName, timeout)
-		result.IpAcquired = &ipAcquired
+		result.IPAcquired = &ipAcquired
 		if ipAddr != "" {
-			result.IpAddress = &ipAddr
+			result.IPAddress = &ipAddr
 		}
 		if gateway != "" {
 			result.Gateway = &gateway
 		}
 		if len(dnsServers) > 0 {
-			result.DnsServers = dnsServers
+			result.DNSServers = dnsServers
 		}
 
 		// Check for captive portal
@@ -671,7 +671,7 @@ func connectToNetwork(
 			portalDetected, portalURL := detectCaptivePortal(ctx)
 			result.PortalDetected = &portalDetected
 			if portalURL != "" {
-				result.PortalUrl = &portalURL
+				result.PortalURL = &portalURL
 			}
 		}
 	} else {
