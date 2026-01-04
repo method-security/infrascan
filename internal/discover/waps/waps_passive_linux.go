@@ -653,6 +653,8 @@ func parseRSNElement(data []byte, security *discover.SecurityConfiguration) {
 			wpaVer := common.WpaVersionWpa2
 			security.WpaVersion = &wpaVer
 		case 2: // PSK
+			auth := common.AuthenticationMethodPsk
+			security.AuthenticationMethod = &auth
 			security.KeyManagement = append(security.KeyManagement, common.KeyManagementTypePsk)
 			wpaVer := common.WpaVersionWpa2
 			security.WpaVersion = &wpaVer

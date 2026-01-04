@@ -13,4 +13,3 @@ import (
 //
 //go:embed discover/waps/oui_database.json
 var EmbeddedConfigs embed.FS
-

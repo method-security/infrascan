@@ -1,6 +1,6 @@
 # Capabilities
 
-infrascan offers a variety of techniques that allow security teams to leverage open source intelligence (OSINT) capabilities to better understand their internet facing exposure. Each of the below pages offers you an in depth look at a infrascan capability related to a unique technique.
+infrascan offers a variety of techniques that allow security teams to discover, enumerate, and connect to infrastructure (WiFi, Bluetooth, NFC, IoT) targets. Each of the below pages offers you an in depth look at a infrascan capability related to a unique technique.
 
 ## Top Level Commands
 
@@ -8,32 +8,13 @@ infrascan organizes functionality under three primary command groups and their m
 
 ### discover
 
-- **ASN** – ASN information discovery using BGPView API
-  - `infrascan discover asn` – Get detailed ASN information including CIDRs, country, and metadata
-- **CDN** – CDN provider detection for IP addresses and domains
-  - `infrascan discover cdn` – Check if domains/IPs belong to known CDN providers
-- **DNS** – Comprehensive DNS intelligence gathering
-  - `infrascan discover dns certs` – Retrieve SSL/TLS certificates for domains
-  - `infrascan discover dns records` – Fetch DNS records (A, AAAA, MX, TXT, etc.)
-  - `infrascan discover dns forward` – Perform forward DNS lookups
-  - `infrascan discover dns reverse` – Perform reverse DNS lookups on IPs/CIDRs
-  - `infrascan discover dns subdomain active` – Actively discover subdomains via brute-force
-  - `infrascan discover dns subdomain correlation` – Correlate subdomains across domains
-  - `infrascan discover dns subdomain passive` – Passively discover subdomains from external sources
-- **IP** – IP address and network intelligence
-  - `infrascan discover ip domain-asn` – Perform reverse DNS and ASN lookups
-- **Shodan** – Query the Shodan search engine
-  - `infrascan discover shodan hostname` – Search Shodan for specific hostnames
+- **WAPs** – Wireless Access Point discovery and enumeration
+  - `infrascan discover waps` – Discover nearby wireless access points via 802.11 reconnaissance
 
-### enumerate
+### connect
 
-- **DNS** – Active DNS enumeration techniques
-  - `infrascan enumerate dns zonetransfer` – Attempt AXFR zone transfers
-
-### pentest
-
-- **DNS** – DNS-focused penetration testing
-  - `infrascan pentest dns takeover` – Detect subdomain takeover vulnerabilities
+- **WAP** – Wireless Access Point connection and authentication testing
+  - `infrascan connect wap` – Test wireless access point security through controlled connection attempts
 
 ## Top Level Flags
 

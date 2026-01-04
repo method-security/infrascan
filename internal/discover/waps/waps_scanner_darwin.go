@@ -482,6 +482,9 @@ func buildSecurityConfig(network *C.CWNetworkInfo) *discover.SecurityConfigurati
 		keyMgmt := common.KeyManagementTypeSae
 		config.KeyManagement = []common.KeyManagementType{keyMgmt}
 	} else {
+		// WPA/WPA2 Personal (PSK)
+		auth := common.AuthenticationMethodPsk
+		config.AuthenticationMethod = &auth
 		keyMgmt := common.KeyManagementTypePsk
 		config.KeyManagement = []common.KeyManagementType{keyMgmt}
 	}

@@ -1,0 +1,385 @@
+# Connection Validation for Wireless Access Points
+# Confirms that an SSID/AP actually enforces the advertised security and expected access controls using a designated test client profile.
+#
+# Category: challenge/validation (authorized, controlled)
+# Purpose: Attempt to connect using a permitted test identity and collect high-level outcomes without credential guessing or disruption.
+
+imports:
+    wireless: ../common/wireless.yml
+
+types:
+    # =============================================================================
+    # 802.11 STATUS CODES (IEEE 802.11-2020)
+    # =============================================================================
+    AssociationStatusCode:
+        docs: |
+            Standard 802.11 Status Codes for association/authentication frames.
+            Using these allows the ontology to distinguish between credential failures
+            and protocol mismatches.
+        enum:
+            - SUCCESS
+            - UNSPECIFIED_FAILURE
+            - CAPABILITY_NOT_SUPPORTED
+            - REASSOCIATION_DENIED
+            - ASSOCIATION_DENIED
+            - AUTH_ALGO_NOT_SUPPORTED
+            - AUTH_SEQ_OUT_OF_ORDER
+            - CHALLENGE_FAILURE
+            - AUTH_TIMEOUT
+            - AP_RESOURCE_CONSTRAINED
+            - ASSOC_DENIED_RATES
+            - ASSOC_DENIED_NO_SHORT_PREAMBLE
+            - ASSOC_DENIED_NO_PBCC
+            - ASSOC_DENIED_NO_CHANNEL_AGILITY
+            - ASSOC_DENIED_NO_SPECTRUM_MGMT
+            - ASSOC_DENIED_BAD_POWER_CAP
+            - ASSOC_DENIED_BAD_SUPPORTED_CHANNELS
+            - ASSOC_DENIED_NO_SHORT_SLOT
+            - ASSOC_DENIED_NO_DSSS_OFDM
+            - ASSOC_DENIED_NO_HT
+            - R0KH_UNREACHABLE
+            - CIPHER_REJECTED_BY_POLICY
+            - TS_NOT_CREATED
+            - DIRECT_LINK_NOT_ALLOWED
+            - DEST_STA_NOT_PRESENT
+            - DEST_STA_NOT_QOS_STA
+            - ASSOC_DENIED_LISTEN_INT_TOO_LARGE
+            - INVALID_FT_ACTION_FRAME_COUNT
+            - INVALID_PMKID
+            - INVALID_MDE
+            - INVALID_FTE
+            - TRANSMISSION_FAILURE
+            - REQUESTED_TCLAS_NOT_SUPPORTED
+            - TCLAS_RESOURCES_EXHAUSTED
+            - REJECTED_WITH_SUGGESTED_BSS_TRANSITION
+            - REJECT_WITH_SCHEDULE
+            - REJECT_NO_WAKEUP_SPECIFIED
+            - SUCCESS_POWER_SAVE_MODE
+            - PENDING_ADMITTING_FST_SESSION
+            - PERFORMING_FST_NOW
+            - PENDING_GAP_IN_BA_WINDOW
+            - REJECT_U_PID_SETTING
+            - ANTI_CLOGGING_TOKEN_REQUIRED
+            - FINITE_CYCLIC_GROUP_NOT_SUPPORTED
+            - CANNOT_FIND_ALTERNATIVE_TBTT
+            - TRANSMISSION_FAILURE_2
+            - REQUESTED_TCLAS_NOT_SUPPORTED_2
+            - TCLAS_RESOURCES_EXHAUSTED_2
+            - REFUSED_REASON_UNSPECIFIED
+            - SAE_HASH_TO_ELEMENT
+            - REFUSED_AP_OUT_OF_MEMORY
+            - DENIED_DUE_TO_SSID_RESTRICTION
+            - DENIED_DUE_TO_AUTHORIZATION
+            - TIMEOUT
+            - UNKNOWN
+
+    # =============================================================================
+    # HANDSHAKE PROGRESS
+    # =============================================================================
+    HandshakeProgress:
+        docs: |
+            Indicates how far the authentication handshake progressed before failure.
+            Useful for diagnosing why authentication failed - e.g., reaching 4WAY_MSG2
+            but not MSG3 typically indicates the AP rejected our password.
+        enum:
+            - NOT_STARTED
+            - SCANNING
+            - AUTHENTICATING
+            - ASSOCIATING
+            - ASSOCIATED
+            - FOUR_WAY_MSG1_RECEIVED
+            - FOUR_WAY_MSG2_SENT
+            - FOUR_WAY_MSG3_RECEIVED
+            - FOUR_WAY_MSG4_SENT
+            - GROUP_HANDSHAKE
+            - COMPLETED
+            - DISCONNECTED
+
+    # =============================================================================
+    # 802.11 REASON CODES (for deauth/disassoc - different from status codes)
+    # =============================================================================
+    DeauthReasonCode:
+        docs: |
+            802.11 Reason Codes for deauthentication/disassociation frames.
+            Different from Status Codes - these explain WHY a connection was terminated.
+            Key codes: FOUR_WAY_HANDSHAKE_TIMEOUT (15) = wrong PSK,
+            IEEE_802_1X_AUTH_FAILED (23) = EAP failure.
+        enum:
+            - UNSPECIFIED
+            - PREV_AUTH_NOT_VALID
+            - DEAUTH_LEAVING
+            - INACTIVITY
+            - AP_RESOURCE_FULL
+            - CLASS2_FRAME_FROM_NONAUTH
+            - CLASS3_FRAME_FROM_NONASSOC
+            - DISASSOC_LEAVING
+            - NOT_AUTHENTICATED
+            - UNACCEPTABLE_POWER_CAP
+            - UNACCEPTABLE_CHANNELS
+            - BSS_TRANSITION_DISASSOC
+            - INVALID_IE
+            - MIC_FAILURE
+            - FOUR_WAY_HANDSHAKE_TIMEOUT
+            - GROUP_KEY_HANDSHAKE_TIMEOUT
+            - IE_DIFFERENT
+            - INVALID_GROUP_CIPHER
+            - INVALID_PAIRWISE_CIPHER
+            - INVALID_AKMP
+            - UNSUPPORTED_RSN_VERSION
+            - INVALID_RSN_CAPABILITIES
+            - IEEE_802_1X_AUTH_FAILED
+            - CIPHER_REJECTED_BY_POLICY
+            - TDLS_TEARDOWN_UNREACHABLE
+            - TDLS_TEARDOWN_UNSPECIFIED
+            - DISASSOC_LOW_ACK
+            - UNKNOWN
+
+    # =============================================================================
+    # CONNECTION TIMING BREAKDOWN
+    # =============================================================================
+    ConnectionTiming:
+        docs: |
+            Timing breakdown for connection attempt phases.
+            Helps diagnose where delays or failures occurred.
+        properties:
+            scanDurationMs: optional<integer>
+            authenticationDurationMs: optional<integer>
+            associationDurationMs: optional<integer>
+            handshakeDurationMs: optional<integer>
+            dhcpDurationMs: optional<integer>
+            totalDurationMs: optional<integer>
+
+    # =============================================================================
+    # EAP METHOD TYPES
+    # =============================================================================
+    EapMethod:
+        docs: |
+            EAP methods used in WPA-Enterprise authentication.
+            Captured to identify protocol negotiation outcomes.
+        enum:
+            - EAP_TLS
+            - EAP_TTLS
+            - PEAP
+            - EAP_FAST
+            - EAP_SIM
+            - EAP_AKA
+            - EAP_AKA_PRIME
+            - EAP_PWD
+            - LEAP
+            - EAP_MD5
+            - EAP_GTC
+            - EAP_MSCHAPv2
+            - EAP_OTP
+            - UNKNOWN
+
+    # =============================================================================
+    # TEST CREDENTIAL TYPES
+    # =============================================================================
+    TestCredentialType:
+        docs: |
+            Type of test credentials used for association attempts.
+            Determines the authentication method to use.
+        enum:
+            - NONE
+            - PSK_SIMPLE
+            - PSK_COMMON
+            - EAP_GUEST
+            - EAP_TEST_IDENTITY
+            - EAP_CERTIFICATE
+            - WEP_DEFAULT_KEY
+            - CAPTIVE_PORTAL_BYPASS
+
+    TestClientProfile:
+        docs: |
+            Controlled asset identity for test association attempts.
+            Contains credentials appropriate for the target security configuration.
+        properties:
+            profileId: string
+            profileName: optional<string>
+            credentialType: TestCredentialType
+            psk: optional<string>
+            eapIdentity: optional<string>
+            eapPassword: optional<string>
+            eapCertificatePath: optional<string>
+            wepKey: optional<string>
+
+    # =============================================================================
+    # CONNECTION OUTCOME
+    # =============================================================================
+    ConnectionOutcome:
+        docs: |
+            High-level outcome categories for connection attempts.
+        enum:
+            - SUCCESS
+            - AUTH_FAILED
+            - ASSOC_FAILED
+            - NO_DHCP
+            - DHCP_TIMEOUT
+            - CAPTIVE_PORTAL_DETECTED
+            - TIMEOUT
+            - NETWORK_NOT_FOUND
+            - SECURITY_MISMATCH
+            - DRIVER_ERROR
+            - PERMISSION_DENIED
+            - INTERFACE_ERROR
+            - UNKNOWN_ERROR
+
+    # =============================================================================
+    # CONFIG, RESULT, REPORT STRUCTS (Top-Level API Pattern)
+    # =============================================================================
+    ValidateConnectionConfig:
+        docs: |
+            Configuration for active connection validation.
+            Specifies target network and test client profile to use.
+        properties:
+            interface: optional<string>
+            targetSsid: optional<string>
+            targetBssid: optional<string>
+            testClientProfileRef: optional<string>
+            testCredentials: optional<list<TestClientProfile>>
+            timeout: optional<integer>
+            expectedSecurity: optional<SecurityExpectation>
+            testPlatformConnectivity:
+                docs: |
+                    If true, after successful connection, test HTTP connectivity to platformUrl.
+                    Requires platformUrl to be set.
+                type: optional<boolean>
+            platformUrl:
+                docs: |
+                    URL to test for platform connectivity (e.g., https://api.example.com/health).
+                    Required if testPlatformConnectivity is true.
+                    The tool will follow redirects and check for HTTP 200 response.
+                type: optional<string>
+            returnToOriginalWifiIfNoPlatformConnectivity:
+                docs: |
+                    Only used when testOnly is false (stay connected mode).
+                    If true and platform connectivity test fails, disconnect from target network
+                    and reconnect to original WiFi. If false, stay connected even if platform
+                    connectivity fails.
+                type: optional<boolean>
+
+    SecurityExpectation:
+        docs: |
+            Expected security configuration for validation.
+            Used to compare against negotiated security.
+        properties:
+            authenticationMethod: optional<wireless.AuthenticationMethod>
+            encryptionProtocol: optional<wireless.EncryptionProtocol>
+            wpaVersion: optional<wireless.WpaVersion>
+            pmfPolicy: optional<wireless.PmfPolicy>
+            requiresAuthentication: optional<boolean>
+
+    ValidateConnectionResult:
+        docs: |
+            Result of connection validation containing all attempt outcomes.
+        properties:
+            attempts: optional<list<ConnectionAttempt>>
+            originalNetworkRestored: optional<boolean>
+            originalNetwork: optional<OriginalNetworkState>
+            platformConnectivity: optional<PlatformConnectivityResult>
+
+    ValidateConnectionReport:
+        docs: |
+            Complete report for connection validation including config, results, and errors.
+        properties:
+            config: ValidateConnectionConfig
+            result: ValidateConnectionResult
+            errors: optional<list<string>>
+
+    # =============================================================================
+    # ORIGINAL NETWORK STATE (for break-and-remake logic)
+    # =============================================================================
+    OriginalNetworkState:
+        docs: |
+            Captures the state of the original WiFi connection before validation.
+            Used to restore connection after validation completes.
+        properties:
+            ssid: optional<string>
+            bssid: optional<string>
+            connectionProfile: 
+                docs: NetworkManager connection profile name (Linux) or profile name (Windows)
+                type: optional<string>
+            wasConnected: boolean
+            restoredSuccessfully: optional<boolean>
+            restoreError: optional<string>
+
+    # =============================================================================
+    # PLATFORM CONNECTIVITY TEST
+    # =============================================================================
+    PlatformConnectivityResult:
+        docs: |
+            Result of platform connectivity test performed after successful WiFi connection.
+            Tests HTTP connectivity to a specified URL to verify the network provides
+            access to required services.
+        properties:
+            tested:
+                docs: Whether the platform connectivity test was performed
+                type: boolean
+            url:
+                docs: The URL that was tested
+                type: optional<string>
+            success:
+                docs: Whether the HTTP request returned a 200 status code
+                type: optional<boolean>
+            statusCode:
+                docs: The HTTP status code received (if any)
+                type: optional<integer>
+            responseTimeMs:
+                docs: Response time in milliseconds
+                type: optional<integer>
+            error:
+                docs: Error message if the request failed
+                type: optional<string>
+            returnedToOriginal:
+                docs: |
+                    If returnToOriginalWifiIfNoPlatformConnectivity was true and connectivity
+                    failed, indicates whether we successfully returned to the original network
+                type: optional<boolean>
+
+    # =============================================================================
+    # CONNECTION ATTEMPT
+    # =============================================================================
+    ConnectionAttempt:
+        docs: |
+            Record of a single connection attempt including timing, outcome,
+            and negotiated security properties.
+        properties:
+            ssid: optional<string>
+            bssid: optional<string>
+            startTime: datetime
+            endTime: optional<datetime>
+            outcome: ConnectionOutcome
+            associationStatusCode: optional<AssociationStatusCode>
+            associationStatusCodeRaw: optional<integer>
+            deauthReasonCode: optional<DeauthReasonCode>
+            deauthReasonCodeRaw: optional<integer>
+            handshakeProgress: optional<HandshakeProgress>
+            timing: optional<ConnectionTiming>
+            retryCount: optional<integer>
+            attemptedSecurity: optional<NegotiatedSecurity>
+            negotiatedSecurity: optional<NegotiatedSecurity>
+            ipAcquired: optional<boolean>
+            ipAddress: optional<string>
+            dhcpServer: optional<string>
+            gateway: optional<string>
+            dnsServers: optional<list<string>>
+            portalDetected: optional<boolean>
+            portalUrl: optional<string>
+            signalQualityAtAttempt: optional<integer>
+            eapMethodNegotiated: optional<EapMethod>
+            credentialTypeUsed: optional<TestCredentialType>
+            errorMessage: optional<string>
+
+    NegotiatedSecurity:
+        docs: |
+            Security configuration actually negotiated during connection.
+            May differ from advertised security.
+        properties:
+            authenticationMethod: optional<wireless.AuthenticationMethod>
+            encryptionProtocol: optional<wireless.EncryptionProtocol>
+            pairwiseCipher: optional<wireless.CipherSuite>
+            groupCipher: optional<wireless.CipherSuite>
+            keyManagement: optional<wireless.KeyManagementType>
+            wpaVersion: optional<wireless.WpaVersion>
+            pmfNegotiated: optional<boolean>
+            eapMethod: optional<EapMethod>

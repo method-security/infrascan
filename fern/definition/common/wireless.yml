@@ -21,6 +21,7 @@ types:
         enum:
             - OPEN
             - SHARED_KEY
+            - PSK
             - SAE
             - FT_SAE
             - EAP
