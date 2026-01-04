@@ -392,7 +392,7 @@ func connectToNetwork(
 		// failure asking the user to re-enter the password. We can't reliably suppress that
 		// from nmcli. The only deterministic way is to avoid NetworkManager for the attempt.
 		inDesktopSession := os.Getenv("DISPLAY") != "" || os.Getenv("WAYLAND_DISPLAY") != ""
-		if inDesktopSession && !AllowDesktopPopups(ctx) {
+		if inDesktopSession && !allowDesktopPopups(ctx) {
 			if os.Getuid() != 0 {
 				result.WithError(
 					connect.ConnectionOutcomePermissionDenied,
@@ -428,7 +428,7 @@ func connectToNetwork(
 			return result
 		}
 		inDesktopSession := os.Getenv("DISPLAY") != "" || os.Getenv("WAYLAND_DISPLAY") != ""
-		if inDesktopSession && !AllowDesktopPopups(ctx) {
+		if inDesktopSession && !allowDesktopPopups(ctx) {
 			// We currently use nmcli for EAP on Linux. That will trigger the desktop secret agent
 			// on auth failures, so refuse unless explicitly allowed.
 			result.WithError(
@@ -601,6 +601,12 @@ func connectWithNmcli(ctx context.Context, iface, ssid, bssid, password string, 
 	if connected && currentSSID == ssid {
 		result.WithSuccess()
 
+		// Store the actual connected BSSID
+		if currentBSSID != "" {
+			result.ConnectedBSSID = &currentBSSID
+			log.Debug("Connected to BSSID", svc1log.SafeParam("bssid", currentBSSID))
+		}
+
 		// Get security info from nmcli
 		negSec := getSecurityInfoNmcli(ctx, ssid)
 		if negSec != nil {
@@ -615,9 +621,6 @@ func connectWithNmcli(ctx context.Context, iface, ssid, bssid, password string, 
 	} else {
 		result.WithError(connect.ConnectionOutcomeAssocFailed, "Connection not established after nmcli reported success")
 	}
-
-	// Store BSSID if available
-	_ = currentBSSID
 
 	return result
 }
@@ -716,6 +719,13 @@ func connectWithNmcliEAP(ctx context.Context, iface, ssid, identity, password st
 	}
 
 	result.WithSuccess()
+
+	// Get the actual connected BSSID
+	_, currentBSSID, _ := getCurrentConnection(ctx, iface)
+	if currentBSSID != "" {
+		result.ConnectedBSSID = &currentBSSID
+		log.Debug("Connected to BSSID", svc1log.SafeParam("bssid", currentBSSID))
+	}
 
 	// Set negotiated security
 	negSec := &connect.NegotiatedSecurity{}
@@ -1080,6 +1090,13 @@ network={
 					// Parse negotiated security from wpa_cli status
 					result.NegotiatedSecurity = parseNegotiatedSecurityFromWpaCli(statusStr)
 
+					// Parse BSSID from wpa_cli status
+					if bssidMatch := regexp.MustCompile(`(?m)^bssid=([0-9a-fA-F:]+)$`).FindStringSubmatch(statusStr); len(bssidMatch) > 1 {
+						connectedBSSID := strings.ToUpper(bssidMatch[1])
+						result.ConnectedBSSID = &connectedBSSID
+						log.Debug("Connected to BSSID (from wpa_cli)", svc1log.SafeParam("bssid", connectedBSSID))
+					}
+
 					result.WithSuccess()
 
 					// If doDHCP is true, acquire DHCP NOW while wpa_supplicant is still running
@@ -1109,7 +1126,7 @@ network={
 
 							// Test platform connectivity if URL is provided via context
 							// This MUST happen while still connected (wpa_supplicant running)
-							platformURL := GetPlatformURL(ctx)
+							platformURL := getPlatformURL(ctx)
 							if platformURL != "" {
 								log.Info("Testing platform connectivity while connected",
 									svc1log.SafeParam("url", platformURL))
