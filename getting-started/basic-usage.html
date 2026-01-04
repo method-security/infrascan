@@ -571,55 +571,15 @@
   
   
   
-    
-    
-    
-      
-      
+    <li class="md-nav__item">
+      <a href="../docs/discover.html" class="md-nav__link">
         
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
-        
-          
-          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
-            
   
   <span class="md-ellipsis">
     Discover
   </span>
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_2">
-            <span class="md-nav__icon md-icon"></span>
-            Discover
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../docs/dns.html" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    DNS
-  </span>
-  
-
       </a>
     </li>
   
@@ -633,161 +593,15 @@
   
   
     <li class="md-nav__item">
-      <a href="../docs/shodan.html" class="md-nav__link">
+      <a href="../docs/connect.html" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Shodan
+    Connect
   </span>
   
 
       </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
-        
-          
-          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
-            
-  
-  <span class="md-ellipsis">
-    Enumerate
-  </span>
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_3">
-            <span class="md-nav__icon md-icon"></span>
-            Enumerate
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../docs/dns.html" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    DNS
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="0">
-            
-  
-  <span class="md-ellipsis">
-    Pentest
-  </span>
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_4">
-            <span class="md-nav__icon md-icon"></span>
-            Pentest
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../docs/dns.html" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    DNS
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
     </li>
   
 
@@ -1049,7 +863,11 @@
 <h1 id="basic-usage">Basic Usage<a class="headerlink" href="#basic-usage" title="Permanent link">#</a></h1>
 <h2 id="binaries">Binaries<a class="headerlink" href="#binaries" title="Permanent link">#</a></h2>
 <p>Running as a binary allows you to skip dealing with any container related networking issues and leverage the same network interface that the host machine is using.</p>
-<div class="highlight"><pre><span></span><code>infrascan<span class="w"> </span>discover<span class="w"> </span>waps
+<div class="highlight"><pre><span></span><code><span class="c1"># Scan using default interface (active mode, emits RF)</span>
+infrascan<span class="w"> </span>discover<span class="w"> </span>waps
+
+<span class="c1"># Test the behavior of a WPA2 PSK protected WiFi network</span>
+infrascan<span class="w"> </span>connect<span class="w"> </span>wap<span class="w"> </span>--target-ssid<span class="w"> </span>testssid<span class="w"> </span>--test-psk<span class="w"> </span>testssidpsk<span class="w"> </span>--test-only
 </code></pre></div>
 <h2 id="docker">Docker<a class="headerlink" href="#docker" title="Permanent link">#</a></h2>
 <p>Running infrascan within a Docker container should typically work similarly to running directly on a host, however, you may encounter some issues related to access to network interfaces.</p>

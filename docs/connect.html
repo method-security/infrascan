@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://method-security.github.io/infrascan/docs/shodan.html">
+        <link rel="canonical" href="https://method-security.github.io/infrascan/docs/connect.html">
       
       
-        <link rel="prev" href="dns.html">
+        <link rel="prev" href="discover.html">
       
       
-        <link rel="next" href="dns.html">
+        <link rel="next" href="../community/community.html">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -24,7 +24,7 @@
     
     
       
-        <title>Shodan - infrascan</title>
+        <title>Connect - infrascan</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#shodan" class="md-skip">
+        <a href="#infrastructure-connection" class="md-skip">
           Skip to content
         </a>
       
@@ -118,7 +118,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Shodan
+              Connect
             
           </span>
         </div>
@@ -511,59 +511,14 @@
                 
   
   
-    
-  
-  
-  
-    
-    
-    
-      
-      
-        
-          
-          
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" checked>
-        
-          
-          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="">
-            
-  
-  <span class="md-ellipsis">
-    Discover
-  </span>
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_2_2">
-            <span class="md-nav__icon md-icon"></span>
-            Discover
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
   
   
     <li class="md-nav__item">
-      <a href="dns.html" class="md-nav__link">
+      <a href="discover.html" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    DNS
+    Discover
   </span>
   
 
@@ -593,18 +548,18 @@
           
   
   <span class="md-ellipsis">
-    Shodan
+    Connect
   </span>
   
 
           <span class="md-nav__icon md-icon"></span>
         </label>
       
-      <a href="shodan.html" class="md-nav__link md-nav__link--active">
+      <a href="connect.html" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
-    Shodan
+    Connect
   </span>
   
 
@@ -626,45 +581,77 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#authentication" class="md-nav__link">
+  <a href="#wireless-access-point-connection" class="md-nav__link">
     <span class="md-ellipsis">
-      Authentication
+      Wireless Access Point Connection
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Wireless Access Point Connection">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#linux-utilized-network-utilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      Linux Utilized Network Utilities
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Linux Utilized Network Utilities">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#connection-utilities-tried-in-order-based-on-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Connection Utilities (tried in order based on conditions)
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
+  <a href="#dhcp-clients-tried-in-order-until-one-succeeds" class="md-nav__link">
+    <span class="md-ellipsis">
+      DHCP Clients (tried in order until one succeeds)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dns-configuration-for-systemd-resolved-systems" class="md-nav__link">
+    <span class="md-ellipsis">
+      DNS Configuration (for systemd-resolved systems)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supporting-utilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      Supporting Utilities
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#decision-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Decision Flow
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      Usage
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#commands" class="md-nav__link">
-    <span class="md-ellipsis">
-      Commands
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Commands">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#hostname" class="md-nav__link">
-    <span class="md-ellipsis">
-      Hostname
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Hostname">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#usage_1" class="md-nav__link">
     <span class="md-ellipsis">
       Usage
     </span>
@@ -685,167 +672,10 @@
     </nav>
   
 </li>
-        
-      </ul>
-    </nav>
-  
-</li>
       
     </ul>
   
 </nav>
-      
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-      
-      
-        
-          
-          
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
-        
-          
-          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="">
-            
-  
-  <span class="md-ellipsis">
-    Enumerate
-  </span>
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_3">
-            <span class="md-nav__icon md-icon"></span>
-            Enumerate
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="dns.html" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    DNS
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-    
-      
-      
-        
-          
-          
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="">
-            
-  
-  <span class="md-ellipsis">
-    Pentest
-  </span>
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_4">
-            <span class="md-nav__icon md-icon"></span>
-            Pentest
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="dns.html" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    DNS
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
       
     </li>
   
@@ -1065,45 +895,77 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#authentication" class="md-nav__link">
+  <a href="#wireless-access-point-connection" class="md-nav__link">
     <span class="md-ellipsis">
-      Authentication
+      Wireless Access Point Connection
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Wireless Access Point Connection">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#linux-utilized-network-utilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      Linux Utilized Network Utilities
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Linux Utilized Network Utilities">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#connection-utilities-tried-in-order-based-on-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Connection Utilities (tried in order based on conditions)
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
+  <a href="#dhcp-clients-tried-in-order-until-one-succeeds" class="md-nav__link">
+    <span class="md-ellipsis">
+      DHCP Clients (tried in order until one succeeds)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dns-configuration-for-systemd-resolved-systems" class="md-nav__link">
+    <span class="md-ellipsis">
+      DNS Configuration (for systemd-resolved systems)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supporting-utilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      Supporting Utilities
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#decision-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Decision Flow
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      Usage
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#commands" class="md-nav__link">
-    <span class="md-ellipsis">
-      Commands
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Commands">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#hostname" class="md-nav__link">
-    <span class="md-ellipsis">
-      Hostname
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Hostname">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#usage_1" class="md-nav__link">
     <span class="md-ellipsis">
       Usage
     </span>
@@ -1117,11 +979,6 @@
       Help Text
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
         
@@ -1145,7 +1002,7 @@
                   
 
   
-    <a href="https://github.com/Method-Security/infrascan/blob/main/docs/docs/shodan.md" title="Edit this page" class="md-content__button md-icon">
+    <a href="https://github.com/Method-Security/infrascan/blob/main/docs/docs/connect.md" title="Edit this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4v-2m10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1 2.1 2.1Z"/></svg>
     </a>
@@ -1153,30 +1010,205 @@
   
 
 
-<h1 id="shodan">Shodan<a class="headerlink" href="#shodan" title="Permanent link">#</a></h1>
-<p>The <code>infrascan discover shodan</code> family of commands leverage the <a href="https://www.shodan.io/">Shodan</a> search engine to provide open source intelligence on exposed internet assets.</p>
-<h2 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Permanent link">#</a></h2>
-<p>All the <code>infrascan discover shodan</code> commands leverage the Shodan API, which needs an API key in order to authenticate. All commands read from a <code>SHODAN_API_KEY</code> environment variable or from a <code>--apikey</code> flag where you can include your Shodan API key.</p>
-<h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">#</a></h2>
-<div class="highlight"><pre><span></span><code>infrascan<span class="w"> </span>discover<span class="w"> </span>shodan<span class="w"> </span><span class="o">[</span>command<span class="o">]</span>
+<h1 id="infrastructure-connection">Infrastructure Connection<a class="headerlink" href="#infrastructure-connection" title="Permanent link">#</a></h1>
+<h2 id="wireless-access-point-connection">Wireless Access Point Connection<a class="headerlink" href="#wireless-access-point-connection" title="Permanent link">#</a></h2>
+<p>Test wireless access point security by attempting a full connection with authentication. This tool is useful for first directly interacting with a wireless access point to ensure it behaves as expected (correct authentication, network type, etc.). It does not have to be used to test valid credentials. However, if valid credentials are obtained or owned, it can secondarily be used to test the validity of those credentials and connect to a target network.</p>
+<p>This command performs a complete 802.11 connection test including:
+  - Layer 2 association with the access point
+  - Full 4-way handshake (for WPA/WPA2/WPA3 networks)
+  - Credential validation (PSK or EAP)
+  - DHCP acquisition and captive portal detection
+  - Optional platform connectivity verification</p>
+<p>The tool will:
+  - Save your current WiFi connection (if any)
+  - Attempt to connect using the provided credentials
+  - Perform the complete authentication handshake
+  - Record the negotiated security properties
+  - Detect captive portals and authentication requirements
+  - Optionally test HTTP connectivity to a platform URL
+  - (Depending on flags set) Return to original WiFi (if there was one) or 
+    stay connected to target network on success</p>
+<p>This tool attempts to leverage various platform specific network utilities to manipulate WiFi connectivity as summarized in the next several Linux/Windows/Darwin sections.</p>
+<h3 id="linux-utilized-network-utilities">Linux Utilized Network Utilities<a class="headerlink" href="#linux-utilized-network-utilities" title="Permanent link">#</a></h3>
+<h4 id="connection-utilities-tried-in-order-based-on-conditions">Connection Utilities (tried in order based on conditions)<a class="headerlink" href="#connection-utilities-tried-in-order-based-on-conditions" title="Permanent link">#</a></h4>
+<table>
+<thead>
+<tr>
+<th>Utility</th>
+<th>When Used</th>
+<th>Purpose</th>
+<th>Root Required</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>nmcli</code> (NetworkManager)</td>
+<td>Open networks, PSK when popups allowed, EAP networks</td>
+<td>Creates temporary connection profile, activates it</td>
+<td>No</td>
+</tr>
+<tr>
+<td><code>wpa_supplicant</code> + <code>nmcli</code></td>
+<td>PSK networks in desktop session when <code>--allow-desktop-popups=false</code></td>
+<td>Bypasses NetworkManager to avoid password prompt dialogs on auth failure. Temporarily marks interface unmanaged.</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>wpa_supplicant</code> standalone</td>
+<td>Fallback when <code>nmcli</code> unavailable</td>
+<td>Direct 802.11 authentication without NetworkManager</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h4 id="dhcp-clients-tried-in-order-until-one-succeeds">DHCP Clients (tried in order until one succeeds)<a class="headerlink" href="#dhcp-clients-tried-in-order-until-one-succeeds" title="Permanent link">#</a></h4>
+<table>
+<thead>
+<tr>
+<th>Utility</th>
+<th>Common On</th>
+<th>Flags Used</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dhcpcd</code></td>
+<td>Arch, Gentoo, some Ubuntu</td>
+<td><code>-4</code> (IPv4), <code>-1</code> (oneshot), <code>-w</code> (wait for carrier), <code>-t 60</code> (timeout)</td>
+</tr>
+<tr>
+<td><code>dhclient</code></td>
+<td>Debian, Ubuntu</td>
+<td><code>-v</code> (verbose), <code>-1</code> (try once)</td>
+</tr>
+<tr>
+<td><code>udhcpc</code></td>
+<td>BusyBox/embedded systems</td>
+<td><code>-i</code> (interface), <code>-n</code> (exit if no lease), <code>-q</code> (quit after lease)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="dns-configuration-for-systemd-resolved-systems">DNS Configuration (for systemd-resolved systems)<a class="headerlink" href="#dns-configuration-for-systemd-resolved-systems" title="Permanent link">#</a></h4>
+<table>
+<thead>
+<tr>
+<th>Utility</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>resolvectl dns</code></td>
+<td>Configures DNS servers for the interface when DHCP doesn't auto-configure systemd-resolved</td>
+</tr>
+<tr>
+<td><code>resolvectl domain</code></td>
+<td>Sets interface as default DNS route (<code>~.</code>)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="supporting-utilities">Supporting Utilities<a class="headerlink" href="#supporting-utilities" title="Permanent link">#</a></h4>
+<table>
+<thead>
+<tr>
+<th>Utility</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>iw</code></td>
+<td>Detect wireless interfaces, check link state, force disconnect</td>
+</tr>
+<tr>
+<td><code>iwconfig</code></td>
+<td>Fallback interface detection when <code>iw</code> unavailable</td>
+</tr>
+<tr>
+<td><code>ip</code></td>
+<td>Get/set interface state, check IP addresses, get gateway</td>
+</tr>
+<tr>
+<td><code>wpa_cli</code></td>
+<td>Monitor <code>wpa_supplicant</code> connection state and handshake progress</td>
+</tr>
+<tr>
+<td><code>pkill</code></td>
+<td>Terminate existing <code>wpa_supplicant</code> processes on interface</td>
+</tr>
+</tbody>
+</table>
+<h4 id="decision-flow">Decision Flow<a class="headerlink" href="#decision-flow" title="Permanent link">#</a></h4>
+<div class="highlight"><pre><span></span><code>┌─────────────────────────────────────────┐
+│           Credential Type?              │
+└─────────────────────────────────────────┘
+           │
+    ┌──────┴──────┬──────────────┐
+    ▼             ▼              ▼
+  OPEN          PSK            EAP
+    │             │              │
+    ▼             ▼              ▼
+  nmcli     Desktop Session?   nmcli
+    │         │       │        (EAP)
+    │        Yes      No
+    │         │       │
+    │         ▼       ▼
+    │     Root?    nmcli
+    │      │  │
+    │     Yes No
+    │      │  │
+    │      ▼  ▼
+    │  wpa_supplicant  Error:
+    │  (no-NM path)   need sudo
+    │
+    └──────────────────────────────────────►  Connection
 </code></pre></div>
-<h2 id="commands">Commands<a class="headerlink" href="#commands" title="Permanent link">#</a></h2>
-<h3 id="hostname">Hostname<a class="headerlink" href="#hostname" title="Permanent link">#</a></h3>
-<h4 id="usage_1">Usage<a class="headerlink" href="#usage_1" title="Permanent link">#</a></h4>
-<div class="highlight"><pre><span></span><code>infrascan<span class="w"> </span>discover<span class="w"> </span>shodan<span class="w"> </span>hostname<span class="w"> </span>--query<span class="w"> </span>nginx<span class="w"> </span>--hostname<span class="w"> </span>example.com
+<h3 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">#</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Test the behavior of a WPA2 PSK protected WiFi network</span>
+infrascan<span class="w"> </span>connect<span class="w"> </span>wap<span class="w"> </span>--target-ssid<span class="w"> </span>testssid<span class="w"> </span>--test-psk<span class="w"> </span>testssidpsk<span class="w"> </span>--test-only<span class="w"> </span>--output<span class="w"> </span>json
+
+<span class="c1"># Connect to a WPA2 PSK protected WiFi network with valid credentials and test connectivity back to a central platform</span>
+<span class="c1">#</span>
+<span class="c1"># Useful for ensuring there is internet (or equivalent) access on a target network</span>
+infrascan<span class="w"> </span>connect<span class="w"> </span>wap<span class="w"> </span>--target-ssid<span class="w"> </span>testssid<span class="w"> </span>--test-psk<span class="w"> </span>testssidpsk<span class="w"> </span>--test-only<span class="w"> </span>--test-platform-connectivity<span class="w"> </span>--platform-url<span class="w"> </span>https://platform.com<span class="w"> </span>--output<span class="w"> </span>json
+
+<span class="c1"># Connect to a WPA2 PSK protected WiFi network with valid credentials and remain connected to that target network</span>
+infrascan<span class="w"> </span>connect<span class="w"> </span>wap<span class="w"> </span>--target-ssid<span class="w"> </span>testssid<span class="w"> </span>--test-psk<span class="w"> </span>testssidpsk<span class="w"> </span>--test-only<span class="o">=</span><span class="nb">false</span>
+
+<span class="c1"># Connect to a WPA2 PSK protected WiFi network with valid credentials and remain connected to that target network</span>
+<span class="c1"># only if there is central platform connectivity verified</span>
+<span class="c1">#</span>
+<span class="c1"># Useful for ensuring network switching only when connectivity to tool is not lost</span>
+infrascan<span class="w"> </span>connect<span class="w"> </span>wap<span class="w"> </span>--target-ssid<span class="w"> </span>testssid<span class="w"> </span>--test-psk<span class="w"> </span>testssidpsk<span class="w"> </span>--test-only<span class="w"> </span>--test-platform-connectivity<span class="w"> </span>--platform-url<span class="w"> </span>https://platform.com<span class="w"> </span>--return-to-original-wifi-if-no-platform-connectivity<span class="w"> </span>--output<span class="w"> </span>json
+
+<span class="c1"># Test the behavior of an open (no auth) WiFi network</span>
+infrascan<span class="w"> </span>connect<span class="w"> </span>wap<span class="w"> </span>--target-ssid<span class="w"> </span>testopenssid<span class="w"> </span>--test-only<span class="w"> </span>--output<span class="w"> </span>json
 </code></pre></div>
-<h4 id="help-text">Help Text<a class="headerlink" href="#help-text" title="Permanent link">#</a></h4>
-<div class="highlight"><pre><span></span><code>$<span class="w"> </span>infrascan<span class="w"> </span>discover<span class="w"> </span>shodan<span class="w"> </span>hostname<span class="w"> </span>--help
-Query<span class="w"> </span>Shodan<span class="w"> </span><span class="k">for</span><span class="w"> </span>information<span class="w"> </span>about<span class="w"> </span>a<span class="w"> </span>specific<span class="w"> </span>hostname,<span class="w"> </span>filtering<span class="w"> </span>results<span class="w"> </span>to<span class="w"> </span>match<span class="w"> </span>the<span class="w"> </span>provided<span class="w"> </span>hostname<span class="w"> </span>suffix.
+<h3 id="help-text">Help Text<a class="headerlink" href="#help-text" title="Permanent link">#</a></h3>
+<div class="highlight"><pre><span></span><code>Test<span class="w"> </span>wireless<span class="w"> </span>access<span class="w"> </span>point<span class="w"> </span>security<span class="w"> </span>by<span class="w"> </span>attempting<span class="w"> </span>a<span class="w"> </span>full<span class="w"> </span>connection<span class="w"> </span>with<span class="w"> </span>authentication.
+
+Test<span class="w"> </span>wireless<span class="w"> </span>access<span class="w"> </span>point<span class="w"> </span>security<span class="w"> </span>by<span class="w"> </span>attempting<span class="w"> </span>a<span class="w"> </span>full<span class="w"> </span>connection<span class="w"> </span>with<span class="w"> </span>authentication.<span class="w"> </span>This<span class="w"> </span>tool<span class="w"> </span>is<span class="w"> </span>useful
+<span class="k">for</span><span class="w"> </span>first<span class="w"> </span>directly<span class="w"> </span>interacting<span class="w"> </span>with<span class="w"> </span>a<span class="w"> </span>wireless<span class="w"> </span>access<span class="w"> </span>point<span class="w"> </span>to<span class="w"> </span>ensure<span class="w"> </span>it<span class="w"> </span>behaves<span class="w"> </span>as<span class="w"> </span>expected<span class="w"> </span><span class="o">(</span>correct<span class="w"> </span>authentication,
+network<span class="w"> </span>type,<span class="w"> </span>etc.<span class="o">)</span>.<span class="w"> </span>It<span class="w"> </span>does<span class="w"> </span>not<span class="w"> </span>have<span class="w"> </span>to<span class="w"> </span>be<span class="w"> </span>used<span class="w"> </span>to<span class="w"> </span><span class="nb">test</span><span class="w"> </span>valid<span class="w"> </span>credentials.<span class="w"> </span>However,<span class="w"> </span><span class="k">if</span><span class="w"> </span>valid<span class="w"> </span>credentials<span class="w"> </span>are
+obtained<span class="w"> </span>or<span class="w"> </span>owned,<span class="w"> </span>it<span class="w"> </span>can<span class="w"> </span>secondarily<span class="w"> </span>be<span class="w"> </span>used<span class="w"> </span>to<span class="w"> </span><span class="nb">test</span><span class="w"> </span>the<span class="w"> </span>validity<span class="w"> </span>of<span class="w"> </span>those<span class="w"> </span>credentials<span class="w"> </span>and<span class="w"> </span>connect<span class="w"> </span>to<span class="w"> </span>a<span class="w"> </span>target<span class="w"> </span>network.
 
 Usage:
-<span class="w">  </span>infrascan<span class="w"> </span>discover<span class="w"> </span>shodan<span class="w"> </span>hostname<span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
+<span class="w">  </span>infrascan<span class="w"> </span>connect<span class="w"> </span>wap<span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
 
 Flags:
-<span class="w">      </span>--api-key<span class="w"> </span>string<span class="w">    </span>Shodan<span class="w"> </span>API<span class="w"> </span>Key<span class="w"> </span><span class="o">(</span>defaults<span class="w"> </span>to<span class="w"> </span>SHODAN_API_KEY<span class="w"> </span>environment<span class="w"> </span>variable<span class="w"> </span><span class="k">if</span><span class="w"> </span>not<span class="w"> </span>provided<span class="o">)</span>
-<span class="w">  </span>-h,<span class="w"> </span>--help<span class="w">              </span><span class="nb">help</span><span class="w"> </span><span class="k">for</span><span class="w"> </span>hostname
-<span class="w">      </span>--hostname<span class="w"> </span>string<span class="w">   </span>The<span class="w"> </span>hostname<span class="w"> </span>suffix<span class="w"> </span>to<span class="w"> </span>match<span class="w"> </span><span class="k">in</span><span class="w"> </span>Shodan<span class="w"> </span>search<span class="w"> </span>results
-<span class="w">      </span>--query<span class="w"> </span>string<span class="w">      </span>The<span class="w"> </span>search<span class="w"> </span>query<span class="w"> </span>string<span class="w"> </span>to<span class="w"> </span>use<span class="w"> </span>with<span class="w"> </span>Shodan<span class="w"> </span><span class="o">(</span>e.g.,<span class="w"> </span><span class="s1">&#39;apache&#39;</span>,<span class="w"> </span><span class="s1">&#39;nginx&#39;</span><span class="o">)</span>
+<span class="w">      </span>--allow-desktop-popups<span class="w">                                  </span>Allow<span class="w"> </span>desktop/OS<span class="w"> </span>password<span class="w"> </span>prompts<span class="w"> </span><span class="o">(</span>NetworkManager<span class="w"> </span>secret<span class="w"> </span>agent<span class="o">)</span><span class="w"> </span>on<span class="w"> </span>authentication<span class="w"> </span>failures.<span class="w"> </span>By<span class="w"> </span>default,<span class="w"> </span>infrascan<span class="w"> </span>uses<span class="w"> </span>a<span class="w"> </span>non-NetworkManager<span class="w"> </span>path<span class="w"> </span>when<span class="w"> </span>running<span class="w"> </span>as<span class="w"> </span>root<span class="w"> </span>to<span class="w"> </span>avoid<span class="w"> </span>GUI<span class="w"> </span>prompts.
+<span class="w">  </span>-h,<span class="w"> </span>--help<span class="w">                                                  </span><span class="nb">help</span><span class="w"> </span><span class="k">for</span><span class="w"> </span>wap
+<span class="w">      </span>--interface<span class="w"> </span>string<span class="w">                                      </span>Network<span class="w"> </span>interface<span class="w"> </span>to<span class="w"> </span>use<span class="w"> </span><span class="o">(</span>auto-detected<span class="w"> </span><span class="k">if</span><span class="w"> </span>not<span class="w"> </span>specified<span class="o">)</span>
+<span class="w">      </span>--platform-url<span class="w"> </span>string<span class="w">                                   </span>URL<span class="w"> </span>to<span class="w"> </span><span class="nb">test</span><span class="w"> </span><span class="k">for</span><span class="w"> </span>platform<span class="w"> </span>connectivity<span class="w"> </span><span class="o">(</span>e.g.,<span class="w"> </span>https://api.example.com/health<span class="o">)</span>.<span class="w"> </span>Required<span class="w"> </span>when<span class="w"> </span>--test-platform-connectivity<span class="w"> </span>is<span class="w"> </span>set.<span class="w"> </span>Follows<span class="w"> </span>redirects,<span class="w"> </span>expects<span class="w"> </span>HTTP<span class="w"> </span><span class="m">200</span>.
+<span class="w">      </span>--return-to-original-wifi-if-no-platform-connectivity<span class="w">   </span>Only<span class="w"> </span>applies<span class="w"> </span>when<span class="w"> </span>--test-only<span class="o">=</span>false.<span class="w"> </span><span class="nv">Use</span><span class="w"> </span><span class="o">=</span><span class="nb">true</span><span class="w"> </span>to<span class="w"> </span>disconnect<span class="w"> </span>from<span class="w"> </span>target<span class="w"> </span>and<span class="w"> </span>restore<span class="w"> </span>original<span class="w"> </span>WiFi<span class="w"> </span>when<span class="w"> </span>platform<span class="w"> </span>connectivity<span class="w"> </span>fails.
+<span class="w">      </span>--target-bssid<span class="w"> </span>string<span class="w">                                   </span>Target<span class="w"> </span>BSSID<span class="w"> </span>to<span class="w"> </span>connect<span class="w"> </span>to<span class="w"> </span><span class="o">(</span>optional,<span class="w"> </span><span class="k">for</span><span class="w"> </span>specific<span class="w"> </span>AP<span class="o">)</span>
+<span class="w">      </span>--target-ssid<span class="w"> </span>string<span class="w">                                    </span>Target<span class="w"> </span>SSID<span class="w"> </span>to<span class="w"> </span>connect<span class="w"> </span>to
+<span class="w">      </span>--test-eap-identity<span class="w"> </span>string<span class="w">                              </span>EAP<span class="w"> </span>identity<span class="w"> </span><span class="k">for</span><span class="w"> </span>WPA-Enterprise<span class="w"> </span>testing
+<span class="w">      </span>--test-eap-password<span class="w"> </span>string<span class="w">                              </span>EAP<span class="w"> </span>password<span class="w"> </span><span class="k">for</span><span class="w"> </span>WPA-Enterprise<span class="w"> </span>testing
+<span class="w">      </span>--test-only<span class="w">                                             </span>Test<span class="w"> </span>connection<span class="w"> </span>and<span class="w"> </span>restore<span class="w"> </span>original<span class="w"> </span>WiFi<span class="w"> </span>when<span class="w"> </span><span class="k">done</span>.<span class="w"> </span>Use<span class="w"> </span>--test-only<span class="o">=</span><span class="nb">false</span><span class="w"> </span><span class="o">(</span><span class="nv">with</span><span class="w"> </span><span class="o">=)</span><span class="w"> </span>to<span class="w"> </span>stay<span class="w"> </span>connected<span class="w"> </span>on<span class="w"> </span>success.<span class="w"> </span><span class="o">(</span>default<span class="w"> </span><span class="nb">true</span><span class="o">)</span>
+<span class="w">      </span>--test-platform-connectivity<span class="w">                            </span>After<span class="w"> </span>successful<span class="w"> </span>connection,<span class="w"> </span><span class="nb">test</span><span class="w"> </span>HTTP<span class="w"> </span>connectivity<span class="w"> </span>to<span class="w"> </span>--platform-url
+<span class="w">      </span>--test-psk<span class="w"> </span>string<span class="w">                                       </span>PSK/password<span class="w"> </span>to<span class="w"> </span><span class="nb">test</span><span class="w"> </span><span class="k">for</span><span class="w"> </span>WPA-Personal<span class="w"> </span>networks
+<span class="w">      </span>--timeout<span class="w"> </span>int<span class="w">                                           </span>Timeout<span class="w"> </span><span class="k">in</span><span class="w"> </span>seconds<span class="w"> </span><span class="k">for</span><span class="w"> </span>connection<span class="w"> </span>attempt<span class="w"> </span><span class="o">(</span>default<span class="w"> </span><span class="m">60</span><span class="o">)</span>
 
 Global<span class="w"> </span>Flags:
 <span class="w">  </span>-o,<span class="w"> </span>--output<span class="w"> </span>string<span class="w">        </span>Output<span class="w"> </span>format<span class="w"> </span><span class="o">(</span>signal,<span class="w"> </span>json,<span class="w"> </span>yaml<span class="o">)</span>.<span class="w"> </span>Default<span class="w"> </span>value<span class="w"> </span>is<span class="w"> </span>signal<span class="w"> </span><span class="o">(</span>default<span class="w"> </span><span class="s2">&quot;signal&quot;</span><span class="o">)</span>
@@ -1215,7 +1247,7 @@ Global<span class="w"> </span>Flags:
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="dns.html" class="md-footer__link md-footer__link--prev" aria-label="Previous: DNS">
+          <a href="discover.html" class="md-footer__link md-footer__link--prev" aria-label="Previous: Discover">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
@@ -1225,20 +1257,20 @@ Global<span class="w"> </span>Flags:
                 Previous
               </span>
               <div class="md-ellipsis">
-                DNS
+                Discover
               </div>
             </div>
           </a>
         
         
           
-          <a href="dns.html" class="md-footer__link md-footer__link--next" aria-label="Next: DNS">
+          <a href="../community/community.html" class="md-footer__link md-footer__link--next" aria-label="Next: How to contribute">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                DNS
+                How to contribute
               </div>
             </div>
             <div class="md-footer__button md-icon">
