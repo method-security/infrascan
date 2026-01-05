@@ -1284,6 +1284,10 @@ func parseNegotiatedSecurityFromWpaCli(statusStr string) *connect.NegotiatedSecu
 	// Parse key_mgmt
 	if keyMgmt := regexp.MustCompile(`(?m)^key_mgmt=(.+)$`).FindStringSubmatch(statusStr); len(keyMgmt) > 1 {
 		switch strings.ToUpper(keyMgmt[1]) {
+		case "NONE":
+			// Open network - no encryption
+			authMethod := common.AuthenticationMethodOpen
+			negSec.AuthenticationMethod = &authMethod
 		case "WPA2-PSK":
 			wpaVer := common.WpaVersionWpa2
 			negSec.WpaVersion = &wpaVer
@@ -1337,34 +1341,65 @@ func parseNegotiatedSecurityFromWpaCli(statusStr string) *connect.NegotiatedSecu
 	return negSec
 }
 
-// getSecurityInfoNmcli retrieves negotiated security info using nmcli.
+// getSecurityInfoNmcli retrieves negotiated security info for the connected network using nmcli.
 func getSecurityInfoNmcli(ctx context.Context, ssid string) *connect.NegotiatedSecurity {
-	cmd := exec.Command("nmcli", "-t", "-f", "SECURITY", "device", "wifi", "list")
+	// Get the security info for the specific connected network by SSID
+	// nmcli -t -f SSID,SECURITY device wifi list
+	cmd := exec.Command("nmcli", "-t", "-f", "SSID,SECURITY", "device", "wifi", "list")
 	output, err := cmd.Output()
 	if err != nil {
 		return nil
 	}
 
-	// Parse security info
 	negSec := &connect.NegotiatedSecurity{}
 
-	outputStr := string(output)
-	if strings.Contains(outputStr, "WPA3") {
-		wpaVer := common.WpaVersionWpa3
-		negSec.WpaVersion = &wpaVer
-		authMethod := common.AuthenticationMethodSae
-		negSec.AuthenticationMethod = &authMethod
-		pmf := true
-		negSec.PmfNegotiated = &pmf
-	} else if strings.Contains(outputStr, "WPA2") {
-		wpaVer := common.WpaVersionWpa2
-		negSec.WpaVersion = &wpaVer
-	} else if strings.Contains(outputStr, "WPA") {
-		wpaVer := common.WpaVersionWpa1
-		negSec.WpaVersion = &wpaVer
+	// Parse output line by line to find the matching SSID
+	lines := strings.Split(string(output), "\n")
+	for _, line := range lines {
+		parts := strings.SplitN(line, ":", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		lineSSID := parts[0]
+		security := parts[1]
+
+		// Match the SSID we connected to
+		if lineSSID != ssid {
+			continue
+		}
+
+		// Found the network, parse its security
+		if security == "" || security == "--" {
+			// Open network
+			authMethod := common.AuthenticationMethodOpen
+			negSec.AuthenticationMethod = &authMethod
+			return negSec
+		}
+
+		if strings.Contains(security, "WPA3") {
+			wpaVer := common.WpaVersionWpa3
+			negSec.WpaVersion = &wpaVer
+			authMethod := common.AuthenticationMethodSae
+			negSec.AuthenticationMethod = &authMethod
+			pmf := true
+			negSec.PmfNegotiated = &pmf
+		} else if strings.Contains(security, "WPA2") {
+			wpaVer := common.WpaVersionWpa2
+			negSec.WpaVersion = &wpaVer
+			authMethod := common.AuthenticationMethodPsk
+			negSec.AuthenticationMethod = &authMethod
+		} else if strings.Contains(security, "WPA") {
+			wpaVer := common.WpaVersionWpa1
+			negSec.WpaVersion = &wpaVer
+			authMethod := common.AuthenticationMethodPsk
+			negSec.AuthenticationMethod = &authMethod
+		}
+
+		return negSec
 	}
 
-	return negSec
+	// SSID not found in list - might be hidden or scan data stale
+	return nil
 }
 
 // triggerDHCP starts a DHCP client on the interface.
