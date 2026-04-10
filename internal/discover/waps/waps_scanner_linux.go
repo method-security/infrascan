@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -42,6 +43,13 @@ import (
 // that succeeds and returns results is used. If all methods fail, an error is returned.
 func scanLinux(ctx context.Context, interfaceName string, timeout int) ([]*discover.WirelessObservation, []int, error) {
 	log := svc1log.FromContext(ctx)
+
+	// Android uses a different wireless stack; iw/nmcli/iwlist are not available.
+	if isAndroid() {
+		log.Info("Detected Android, using cmd wifi for wireless scanning")
+		return scanAndroid(ctx, log, timeout)
+	}
+
 	isRoot := isUnixRoot()
 	log.Info("Starting Linux wireless scan",
 		svc1log.SafeParam("running_as_root", isRoot))
@@ -932,4 +940,206 @@ func frequencyToChannel(freqMHz int) int {
 	}
 
 	return 0
+}
+
+// isAndroid returns true when the process is running on Android, detected by
+// checking /proc/version for the "android" kernel tag present in all Android builds.
+func isAndroid() bool {
+	data, err := os.ReadFile("/proc/version")
+	if err != nil {
+		return false
+	}
+	return strings.Contains(strings.ToLower(string(data)), "android")
+}
+
+// scanAndroid performs WiFi scanning on Android using `cmd wifi list-scan-results`.
+// iw/nmcli/iwlist are not available on Android; the Android framework exposes scan
+// results through the `cmd wifi` shell command (requires root or shell uid).
+func scanAndroid(ctx context.Context, log svc1log.Logger, timeout int) ([]*discover.WirelessObservation, []int, error) {
+	timeoutCtx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
+	defer cancel()
+
+	// Enable WiFi if it is currently disabled.
+	_ = exec.CommandContext(timeoutCtx, "svc", "wifi", "enable").Run()
+
+	// Trigger a fresh scan and wait for the firmware to collect beacons.
+	_ = exec.CommandContext(timeoutCtx, "cmd", "wifi", "start-scan").Run()
+	time.Sleep(3 * time.Second)
+
+	out, err := exec.CommandContext(timeoutCtx, "cmd", "wifi", "list-scan-results").Output()
+	if err != nil {
+		return nil, nil, fmt.Errorf("android wifi scan failed: cmd wifi list-scan-results: %w", err)
+	}
+
+	observations, channels, parseErr := parseAndroidScanResults(string(out))
+	if parseErr != nil {
+		return nil, nil, parseErr
+	}
+
+	log.Info("Completed Android wireless scan using cmd wifi",
+		svc1log.SafeParam("aps_found", len(observations)))
+
+	return observations, channels, nil
+}
+
+// parseAndroidScanResults parses the tabular output of `cmd wifi list-scan-results`.
+// Header: "    BSSID   Frequency   RSSI   Age(sec)   SSID   Flags"
+// Data:   "  28:70:4e:c8:8d:a7   5745   -48   5.545   GothamX   [WPA2-PSK-CCMP-128][ESS]"
+func parseAndroidScanResults(output string) ([]*discover.WirelessObservation, []int, error) {
+	var observations []*discover.WirelessObservation
+	channelMap := make(map[int]bool)
+
+	sc := bufio.NewScanner(strings.NewReader(output))
+	for sc.Scan() {
+		obs := parseAndroidScanLine(sc.Text())
+		if obs == nil {
+			continue
+		}
+		observations = append(observations, obs)
+		if obs.RadioCharacteristics != nil && obs.RadioCharacteristics.Channel != nil {
+			channelMap[*obs.RadioCharacteristics.Channel] = true
+		}
+	}
+
+	channels := make([]int, 0, len(channelMap))
+	for ch := range channelMap {
+		channels = append(channels, ch)
+	}
+
+	return observations, channels, nil
+}
+
+var androidMACRegexp = regexp.MustCompile(`^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$`)
+
+// parseAndroidScanLine parses one data row from `cmd wifi list-scan-results`.
+// Fields (whitespace-separated): BSSID Frequency RSSI Age SSID... Flags
+// SSID may contain spaces; Flags is a contiguous "[...][...]..." token.
+func parseAndroidScanLine(line string) *discover.WirelessObservation {
+	fields := strings.Fields(line)
+	// Need at minimum: BSSID Freq RSSI Age
+	if len(fields) < 4 {
+		return nil
+	}
+
+	bssid := fields[0]
+	if !androidMACRegexp.MatchString(bssid) {
+		return nil
+	}
+	bssid = strings.ToUpper(bssid)
+
+	freqMHz, err := strconv.Atoi(fields[1])
+	if err != nil {
+		return nil
+	}
+
+	rssi, err := strconv.Atoi(fields[2])
+	if err != nil {
+		return nil
+	}
+
+	// fields[3] is Age — skip.
+	// Remaining fields: SSID words (no leading '[') then a single Flags token ('[...]...')
+	var ssidParts []string
+	var flagsToken string
+	for _, f := range fields[4:] {
+		if strings.HasPrefix(f, "[") {
+			flagsToken = f
+			break
+		}
+		ssidParts = append(ssidParts, f)
+	}
+	ssid := strings.Join(ssidParts, " ")
+
+	channel := frequencyToChannel(freqMHz)
+	band := determineFrequencyBand(channel)
+
+	obs := &discover.WirelessObservation{
+		Bssid: bssid,
+	}
+
+	if ssid != "" {
+		isHidden := false
+		obs.Ssid = &ssid
+		obs.SsidLength = ptr(len(ssid))
+		obs.IsHiddenSsid = &isHidden
+	} else {
+		isHidden := true
+		obs.IsHiddenSsid = &isHidden
+	}
+
+	obs.RadioCharacteristics = &discover.RadioCharacteristics{
+		FrequencyMhz: &freqMHz,
+		Channel:      &channel,
+		Band:         band,
+		Rssi:         &rssi,
+	}
+
+	obs.SecurityConfiguration = parseAndroidWifiFlags(flagsToken)
+
+	now := time.Now()
+	passiveOnly := false
+	beaconFrame := common.FrameTypeBeacon
+	obs.ObservationMetadata = &discover.ObservationMetadata{
+		Timestamp:   &now,
+		PassiveOnly: &passiveOnly,
+		FrameTypes:  []common.FrameType{beaconFrame},
+	}
+
+	return obs
+}
+
+// parseAndroidWifiFlags maps the "[WPA2-PSK-CCMP][RSN-SAE][ESS]" style capability flags
+// from `cmd wifi list-scan-results` to a SecurityConfiguration.
+func parseAndroidWifiFlags(flags string) *discover.SecurityConfiguration {
+	config := &discover.SecurityConfiguration{}
+
+	if !strings.Contains(flags, "WPA") && !strings.Contains(flags, "WEP") {
+		isOpen := true
+		config.IsOpenNetwork = &isOpen
+		enc := common.EncryptionProtocolNone
+		config.EncryptionProtocol = &enc
+		auth := common.AuthenticationMethodOpen
+		config.AuthenticationMethod = &auth
+		return config
+	}
+
+	isOpen := false
+	config.IsOpenNetwork = &isOpen
+
+	// SAE (Simultaneous Authentication of Equals) indicates WPA3.
+	if strings.Contains(flags, "SAE") {
+		version := common.WpaVersionWpa3
+		config.WpaVersion = &version
+		auth := common.AuthenticationMethodSae
+		config.AuthenticationMethod = &auth
+		keyMgmt := common.KeyManagementTypeSae
+		config.KeyManagement = []common.KeyManagementType{keyMgmt}
+		enc := common.EncryptionProtocolCcmp
+		config.EncryptionProtocol = &enc
+	} else if strings.Contains(flags, "WPA2") || strings.Contains(flags, "RSN") {
+		version := common.WpaVersionWpa2
+		config.WpaVersion = &version
+		auth := common.AuthenticationMethodPsk
+		config.AuthenticationMethod = &auth
+		keyMgmt := common.KeyManagementTypePsk
+		config.KeyManagement = []common.KeyManagementType{keyMgmt}
+		enc := common.EncryptionProtocolCcmp
+		config.EncryptionProtocol = &enc
+	} else if strings.Contains(flags, "WPA") {
+		version := common.WpaVersionWpa1
+		config.WpaVersion = &version
+		auth := common.AuthenticationMethodPsk
+		config.AuthenticationMethod = &auth
+		keyMgmt := common.KeyManagementTypePsk
+		config.KeyManagement = []common.KeyManagementType{keyMgmt}
+		enc := common.EncryptionProtocolTkip
+		config.EncryptionProtocol = &enc
+	} else if strings.Contains(flags, "WEP") {
+		wepEnabled := true
+		config.IsWepEnabled = &wepEnabled
+		enc := common.EncryptionProtocolWep
+		config.EncryptionProtocol = &enc
+	}
+
+	return config
 }
