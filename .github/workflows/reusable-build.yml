@@ -166,6 +166,8 @@ jobs:
         env:
             DOCKER_CLI_EXPERIMENTAL: "enabled"
         steps:
+            - name: Install Dependences
+              run: sudo apt-get install -y libpcap-dev
             - name: Maximize build space
               uses: easimon/maximize-build-space@v10
               with:
@@ -174,8 +176,6 @@ jobs:
                   remove-docker-images: "true"
                   remove-dotnet: "true"
                   remove-haskell: "true"
-            - name: Install Dependences
-              run: sudo apt install libpcap-dev
             - name: Set up QEMU
               uses: docker/setup-qemu-action@v3
             - name: Set up Docker Buildx
