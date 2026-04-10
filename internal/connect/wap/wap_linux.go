@@ -21,6 +21,9 @@ import (
 
 // findWirelessInterface finds an available wireless interface on Linux.
 func findWirelessInterface(ctx context.Context) (string, error) {
+	if isAndroid() {
+		return "wlan0", nil
+	}
 	// Try to get wireless interfaces using iw
 	cmd := exec.Command("iw", "dev")
 	output, err := cmd.Output()
@@ -48,6 +51,10 @@ func findWirelessInterface(ctx context.Context) (string, error) {
 
 // getCurrentConnection returns the current WiFi connection info on Linux.
 func getCurrentConnection(ctx context.Context, interfaceName string) (ssid string, bssid string, connected bool) {
+	if isAndroid() {
+		return androidGetCurrentConnection()
+	}
+
 	iface := interfaceName
 	if iface == "" {
 		var err error
@@ -116,6 +123,10 @@ func getCurrentConnection(ctx context.Context, interfaceName string) (ssid strin
 // This is used for restoring connections since 'nmcli connection up <profile>' is more reliable
 // than 'nmcli device wifi connect <ssid>' which requires the network to be visible in a scan.
 func getConnectionProfileName(ctx context.Context, interfaceName string) string {
+	if isAndroid() {
+		return androidGetConnectionNetworkID()
+	}
+
 	iface := interfaceName
 	if iface == "" {
 		var err error
@@ -191,6 +202,13 @@ func getSignalQuality(ctx context.Context, interfaceName string, targetSSID stri
 
 // disconnectFromNetwork disconnects from the current WiFi network on Linux.
 func disconnectFromNetwork(ctx context.Context, interfaceName string) error {
+	if isAndroid() {
+		// On Android, cmd wifi connect-network disconnects from the current network
+		// implicitly when connecting to the target. We do NOT forget the original
+		// network here — that happens in androidReconnectToOriginal after the test.
+		return nil
+	}
+
 	iface := interfaceName
 	if iface == "" {
 		var err error
@@ -216,6 +234,10 @@ func disconnectFromNetwork(ctx context.Context, interfaceName string) error {
 // than 'nmcli device wifi connect' because it doesn't require the network to be
 // visible in the current scan - it uses the saved connection profile.
 func reconnectToOriginalNetwork(ctx context.Context, interfaceName string, original *connect.OriginalNetworkState) error {
+	if isAndroid() {
+		return androidReconnectToOriginal(ctx, original)
+	}
+
 	if original == nil || !original.WasConnected {
 		return nil
 	}
@@ -349,6 +371,10 @@ func connectToNetwork(
 	cred *connect.TestClientProfile,
 	timeout int,
 ) *ConnectionResult {
+	if isAndroid() {
+		return androidConnectToNetwork(ctx, targetSSID, targetBSSID, cred, timeout)
+	}
+
 	log := svc1log.FromContext(ctx)
 	result := NewConnectionResult()
 
@@ -1714,6 +1740,10 @@ func checkCommandExists(command string) bool {
 func detectNetworkSecurity(ctx context.Context, interfaceName string, targetSSID string, targetBSSID string) NetworkSecurityType {
 	log := svc1log.FromContext(ctx)
 
+	if isAndroid() {
+		return androidDetectNetworkSecurity(ctx, targetSSID, targetBSSID)
+	}
+
 	iface := interfaceName
 	if iface == "" {
 		var err error
@@ -1850,4 +1880,263 @@ func parseIwScanForSecurity(output string, targetSSID string, targetBSSID string
 	}
 
 	return NetworkSecurityUnknown
+}
+
+// ── Android-specific implementations ──────────────────────────────────────────
+//
+// Android lacks nmcli, wpa_supplicant, and iw. All WiFi operations use the
+// Android framework shell commands:
+//   - `cmd wifi connect-network <ssid> open|wpa2|wpa3 [password] [-b <bssid>]`
+//   - `cmd wifi list-scan-results`
+//   - `cmd wifi list-networks`
+//   - `cmd wifi forget-network <networkId>`
+//   - `cmd wifi status`
+//
+// These commands require shell uid or root (both available via `su -c`).
+
+// isAndroid returns true when running on Android, detected by the "android"
+// kernel tag in /proc/version that all Android builds include.
+func isAndroid() bool {
+	data, err := os.ReadFile("/proc/version")
+	if err != nil {
+		return false
+	}
+	return strings.Contains(strings.ToLower(string(data)), "android")
+}
+
+// androidGetCurrentConnection returns SSID/BSSID of the current WiFi connection.
+func androidGetCurrentConnection() (ssid string, bssid string, connected bool) {
+	out, err := exec.Command("cmd", "wifi", "status").Output()
+	if err != nil {
+		return "", "", false
+	}
+	return parseAndroidWifiStatus(string(out))
+}
+
+// parseAndroidWifiStatus extracts SSID and BSSID from `cmd wifi status` output.
+func parseAndroidWifiStatus(output string) (ssid string, bssid string, connected bool) {
+	ssidRe := regexp.MustCompile(`SSID:\s+"([^"]+)"`)
+	bssidRe := regexp.MustCompile(`BSSID:\s+([0-9a-fA-F]{2}(?::[0-9a-fA-F]{2}){5})`)
+
+	if !strings.Contains(output, "Wifi is connected") {
+		return "", "", false
+	}
+
+	if m := ssidRe.FindStringSubmatch(output); len(m) > 1 {
+		ssid = m[1]
+	}
+	if m := bssidRe.FindStringSubmatch(output); len(m) > 1 {
+		bssid = strings.ToUpper(m[1])
+	}
+	return ssid, bssid, ssid != ""
+}
+
+// androidGetConnectionNetworkID returns the Android network ID for the currently
+// connected network, stored in ConnectionProfile for later restoration.
+func androidGetConnectionNetworkID() string {
+	ssid, _, connected := androidGetCurrentConnection()
+	if !connected || ssid == "" {
+		return ""
+	}
+	out, err := exec.Command("cmd", "wifi", "list-networks").Output()
+	if err != nil {
+		return ""
+	}
+	// Format: "0    GothamX    wpa2-psk"
+	for _, line := range strings.Split(string(out), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) >= 2 && fields[1] == ssid {
+			return fields[0]
+		}
+	}
+	return ""
+}
+
+// androidForgetCurrentNetwork forgets the currently connected network.
+func androidForgetCurrentNetwork() error {
+	id := androidGetConnectionNetworkID()
+	if id == "" {
+		return nil
+	}
+	return exec.Command("cmd", "wifi", "forget-network", id).Run()
+}
+
+// androidReconnectToOriginal restores the original network after a test.
+// Forgets the test network and reconnects to the original using its saved entry.
+func androidReconnectToOriginal(ctx context.Context, original *connect.OriginalNetworkState) error {
+	if original == nil || !original.WasConnected {
+		return nil
+	}
+
+	// Forget the test network currently connected.
+	_ = androidForgetCurrentNetwork()
+	time.Sleep(1 * time.Second)
+
+	if original.Ssid == nil || *original.Ssid == "" {
+		return nil
+	}
+
+	ssid := *original.Ssid
+	out, err := exec.Command("cmd", "wifi", "list-networks").Output()
+	if err != nil {
+		return nil
+	}
+
+	for _, line := range strings.Split(string(out), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) >= 3 && fields[1] == ssid {
+			secType := androidNetworkListSecTypeToFlag(fields[2])
+			args := []string{"wifi", "connect-network", ssid, secType}
+			if original.Bssid != nil && *original.Bssid != "" {
+				args = append(args, "-b", strings.ToLower(*original.Bssid))
+			}
+			return exec.Command("cmd", args...).Run()
+		}
+	}
+	return nil
+}
+
+// androidNetworkListSecTypeToFlag converts `cmd wifi list-networks` security type
+// strings to the flags used by `cmd wifi connect-network`.
+func androidNetworkListSecTypeToFlag(secType string) string {
+	switch strings.TrimSuffix(strings.ToLower(secType), "^") {
+	case "wpa2-psk", "wpa2":
+		return "wpa2"
+	case "wpa3-sae", "wpa3":
+		return "wpa3"
+	case "wep":
+		return "wep"
+	case "owe":
+		return "owe"
+	default:
+		return "open"
+	}
+}
+
+// androidConnectToNetwork implements WiFi connection on Android using `cmd wifi connect-network`.
+func androidConnectToNetwork(
+	ctx context.Context,
+	targetSSID string,
+	targetBSSID string,
+	cred *connect.TestClientProfile,
+	timeout int,
+) *ConnectionResult {
+	log := svc1log.FromContext(ctx)
+	result := NewConnectionResult()
+
+	_ = exec.Command("svc", "wifi", "enable").Run()
+	time.Sleep(1 * time.Second)
+
+	var secFlag, password string
+	switch cred.CredentialType {
+	case connect.TestCredentialTypeNone:
+		secFlag = "open"
+	case connect.TestCredentialTypePskSimple, connect.TestCredentialTypePskCommon:
+		if cred.Psk == nil || *cred.Psk == "" {
+			result.WithError(connect.ConnectionOutcomeAuthFailed, "PSK required but not provided")
+			return result
+		}
+		password = *cred.Psk
+		secFlag = "wpa2"
+		if flags := androidGetNetworkFlags(targetSSID, targetBSSID); strings.Contains(flags, "SAE") {
+			secFlag = "wpa3"
+		}
+	default:
+		result.WithError(connect.ConnectionOutcomeDriverError, "EAP is not supported on Android via this path")
+		return result
+	}
+
+	args := []string{"wifi", "connect-network", targetSSID, secFlag}
+	if password != "" {
+		args = append(args, password)
+	}
+	if targetBSSID != "" {
+		args = append(args, "-b", strings.ToLower(targetBSSID))
+	}
+
+	log.Info("Connecting to Android WiFi network",
+		svc1log.SafeParam("ssid", targetSSID),
+		svc1log.SafeParam("security", secFlag))
+
+	timeoutCtx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
+	defer cancel()
+
+	if err := exec.CommandContext(timeoutCtx, "cmd", args...).Run(); err != nil {
+		result.WithError(connect.ConnectionOutcomeAssocFailed, fmt.Sprintf("cmd wifi connect-network failed: %v", err))
+		return result
+	}
+
+	deadline := time.Now().Add(time.Duration(timeout) * time.Second)
+	for time.Now().Before(deadline) {
+		time.Sleep(2 * time.Second)
+		ssid, bssid, ok := androidGetCurrentConnection()
+		if ok && strings.EqualFold(ssid, targetSSID) {
+			log.Info("Successfully connected to Android WiFi network",
+				svc1log.SafeParam("ssid", ssid),
+				svc1log.SafeParam("bssid", bssid))
+			result.WithSuccess()
+			result.ConnectedBSSID = &bssid
+			return result
+		}
+	}
+
+	result.WithError(connect.ConnectionOutcomeAssocFailed, "timed out waiting for connection to "+targetSSID)
+	return result
+}
+
+// androidDetectNetworkSecurity detects the security type of a target network on Android
+// using `cmd wifi list-scan-results`.
+func androidDetectNetworkSecurity(ctx context.Context, targetSSID string, targetBSSID string) NetworkSecurityType {
+	_ = exec.Command("svc", "wifi", "enable").Run()
+
+	flags := androidGetNetworkFlags(targetSSID, targetBSSID)
+	if flags == "" {
+		return NetworkSecurityUnknown
+	}
+
+	if strings.Contains(flags, "EAP") {
+		return NetworkSecurityEAP
+	}
+	if strings.Contains(flags, "WPA") || strings.Contains(flags, "SAE") || strings.Contains(flags, "RSN") {
+		return NetworkSecurityPSK
+	}
+	return NetworkSecurityOpen
+}
+
+// androidGetNetworkFlags returns the raw capability flags token from
+// `cmd wifi list-scan-results` for the given SSID/BSSID.
+func androidGetNetworkFlags(targetSSID string, targetBSSID string) string {
+	out, err := exec.Command("cmd", "wifi", "list-scan-results").Output()
+	if err != nil {
+		return ""
+	}
+
+	macRe := regexp.MustCompile(`^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$`)
+	for _, line := range strings.Split(string(out), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) < 4 {
+			continue
+		}
+		if !macRe.MatchString(fields[0]) {
+			continue
+		}
+		bssid := strings.ToUpper(fields[0])
+		var ssidParts []string
+		var flagsToken string
+		for _, f := range fields[4:] {
+			if strings.HasPrefix(f, "[") {
+				flagsToken = f
+				break
+			}
+			ssidParts = append(ssidParts, f)
+		}
+		ssid := strings.Join(ssidParts, " ")
+
+		matchSSID := targetSSID != "" && strings.EqualFold(ssid, targetSSID)
+		matchBSSID := targetBSSID != "" && strings.EqualFold(bssid, targetBSSID)
+		if matchSSID || matchBSSID {
+			return flagsToken
+		}
+	}
+	return ""
 }
