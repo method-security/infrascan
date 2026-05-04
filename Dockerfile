@@ -1,7 +1,7 @@
 FROM chromedp/headless-shell:129.0.6643.2 
 
 ARG CLI_NAME="infrascan"
-ARG TARGETARCH
+ARG TARGETPLATFORM
 
 RUN apt-get update && apt-get install -y ca-certificates git
 
@@ -16,7 +16,7 @@ RUN \
   mkdir -p /mnt/output
   
 COPY configs/                                /opt/method/${CLI_NAME}/var/conf/ 
-COPY ${CLI_NAME}                             /opt/method/${CLI_NAME}/service/bin/${CLI_NAME}
+COPY $TARGETPLATFORM/${CLI_NAME}             /opt/method/${CLI_NAME}/service/bin/${CLI_NAME}
 
 RUN \
   adduser --disabled-password --gecos '' method && \
