@@ -1,8 +1,20 @@
-# Infrastructure Connection
-
-## Wireless Access Point Connection
+# Connect
 
 Test wireless access point security by attempting a full connection with authentication. This tool is useful for first directly interacting with a wireless access point to ensure it behaves as expected (correct authentication, network type, etc.). It does not have to be used to test valid credentials. However, if valid credentials are obtained or owned, it can secondarily be used to test the validity of those credentials and connect to a target network.
+
+## Usage
+
+```bash
+infrascan connect [command]
+```
+
+## Available Commands
+
+- **wap**: Test wireless access point connection and authentication
+
+## Commands
+
+### WAP
 
 This command performs a complete 802.11 connection test including:
   - Layer 2 association with the access point
@@ -23,9 +35,9 @@ The tool will:
 
 This tool attempts to leverage various platform specific network utilities to manipulate WiFi connectivity as summarized in the next several Linux/Windows/Darwin sections.
 
-### Linux Utilized Network Utilities
+#### Linux Utilized Network Utilities
 
-#### Connection Utilities (tried in order based on conditions)
+##### Connection Utilities (tried in order based on conditions)
 
 | Utility | When Used | Purpose | Root Required |
 |---------|-----------|---------|---------------|
@@ -33,7 +45,7 @@ This tool attempts to leverage various platform specific network utilities to ma
 | `wpa_supplicant` + `nmcli` | PSK networks in desktop session when `--allow-desktop-popups=false` | Bypasses NetworkManager to avoid password prompt dialogs on auth failure. Temporarily marks interface unmanaged. | Yes |
 | `wpa_supplicant` standalone | Fallback when `nmcli` unavailable | Direct 802.11 authentication without NetworkManager | Yes |
 
-#### DHCP Clients (tried in order until one succeeds)
+##### DHCP Clients (tried in order until one succeeds)
 
 | Utility | Common On | Flags Used |
 |---------|-----------|------------|
@@ -41,14 +53,14 @@ This tool attempts to leverage various platform specific network utilities to ma
 | `dhclient` | Debian, Ubuntu | `-v` (verbose), `-1` (try once) |
 | `udhcpc` | BusyBox/embedded systems | `-i` (interface), `-n` (exit if no lease), `-q` (quit after lease) |
 
-#### DNS Configuration (for systemd-resolved systems)
+##### DNS Configuration (for systemd-resolved systems)
 
 | Utility | Purpose |
 |---------|---------|
 | `resolvectl dns` | Configures DNS servers for the interface when DHCP doesn't auto-configure systemd-resolved |
 | `resolvectl domain` | Sets interface as default DNS route (`~.`) |
 
-#### Supporting Utilities
+##### Supporting Utilities
 
 | Utility | Purpose |
 |---------|---------|
@@ -58,7 +70,7 @@ This tool attempts to leverage various platform specific network utilities to ma
 | `wpa_cli` | Monitor `wpa_supplicant` connection state and handshake progress |
 | `pkill` | Terminate existing `wpa_supplicant` processes on interface |
 
-#### Decision Flow
+##### Decision Flow
 
 ```
 ┌─────────────────────────────────────────┐
@@ -86,7 +98,7 @@ This tool attempts to leverage various platform specific network utilities to ma
     └──────────────────────────────────────►  Connection
 ```
 
-### Usage
+#### Usage
 
 ```bash
 # Test the behavior of a WPA2 PSK protected WiFi network
@@ -110,7 +122,7 @@ infrascan connect wap --target-ssid testssid --test-psk testssidpsk --test-only 
 infrascan connect wap --target-ssid testopenssid --test-only --output json
 ```
 
-### Help Text
+#### Help Text
 
 ```bash
 Test wireless access point security by attempting a full connection with authentication.

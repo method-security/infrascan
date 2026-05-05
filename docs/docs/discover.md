@@ -1,6 +1,4 @@
-# Infrastructure Discovery
-
-## Wireless Access Point Discovery
+# Discover
 
 This command performs 802.11 reconnaissance to discover nearby wireless
 access points. It extracts information from beacon frames including:
@@ -10,6 +8,20 @@ access points. It extracts information from beacon frames including:
   - Security: Authentication method, encryption, WPA version, PMF policy
   - Capabilities: WiFi generation (4/5/6/7), MIMO support
   - Vendor: OUI-based manufacturer identification
+
+## Usage
+
+```bash
+infrascan discover [command]
+```
+
+## Available Commands
+
+- **waps**: Discover nearby wireless access points
+
+## Commands
+
+### WAPs
 
 The `discover waps` command supports two scanning modes:
 
@@ -46,7 +58,7 @@ sudo ip link set wlo1 up
 sudo iw dev wlo1 set power_save off
 ```
 
-### Usage
+#### Usage
 
 ```bash
 # Scan using default interface (active mode, emits RF)
@@ -65,7 +77,7 @@ infrascan discover waps --passive --interface wlan0mon
 infrascan discover waps --timeout 60`
 ```
 
-### Help Text
+#### Help Text
 
 ```bash
 Discover and enumerate wireless access points in the environment.
