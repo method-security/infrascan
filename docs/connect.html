@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="AWS enumeration capabilities for security teams of all sizes">
+        <meta name="description" content="Infrastructure scanning capabilities for security teams of all sizes">
       
       
       
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#infrastructure-connection" class="md-skip">
+        <a href="#connect" class="md-skip">
           Skip to content
         </a>
       
@@ -581,13 +581,41 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#wireless-access-point-connection" class="md-nav__link">
+  <a href="#usage" class="md-nav__link">
     <span class="md-ellipsis">
-      Wireless Access Point Connection
+      Usage
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Wireless Access Point Connection">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#available-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Available Commands
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Commands
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Commands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#wap" class="md-nav__link">
+    <span class="md-ellipsis">
+      WAP
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="WAP">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -651,7 +679,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#usage" class="md-nav__link">
+  <a href="#usage_1" class="md-nav__link">
     <span class="md-ellipsis">
       Usage
     </span>
@@ -665,6 +693,11 @@
       Help Text
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -895,13 +928,41 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#wireless-access-point-connection" class="md-nav__link">
+  <a href="#usage" class="md-nav__link">
     <span class="md-ellipsis">
-      Wireless Access Point Connection
+      Usage
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Wireless Access Point Connection">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#available-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Available Commands
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Commands
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Commands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#wap" class="md-nav__link">
+    <span class="md-ellipsis">
+      WAP
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="WAP">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -965,7 +1026,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#usage" class="md-nav__link">
+  <a href="#usage_1" class="md-nav__link">
     <span class="md-ellipsis">
       Usage
     </span>
@@ -979,6 +1040,11 @@
       Help Text
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -1010,9 +1076,17 @@
   
 
 
-<h1 id="infrastructure-connection">Infrastructure Connection<a class="headerlink" href="#infrastructure-connection" title="Permanent link">#</a></h1>
-<h2 id="wireless-access-point-connection">Wireless Access Point Connection<a class="headerlink" href="#wireless-access-point-connection" title="Permanent link">#</a></h2>
+<h1 id="connect">Connect<a class="headerlink" href="#connect" title="Permanent link">#</a></h1>
 <p>Test wireless access point security by attempting a full connection with authentication. This tool is useful for first directly interacting with a wireless access point to ensure it behaves as expected (correct authentication, network type, etc.). It does not have to be used to test valid credentials. However, if valid credentials are obtained or owned, it can secondarily be used to test the validity of those credentials and connect to a target network.</p>
+<h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">#</a></h2>
+<div class="highlight"><pre><span></span><code>infrascan<span class="w"> </span>connect<span class="w"> </span><span class="o">[</span>command<span class="o">]</span>
+</code></pre></div>
+<h2 id="available-commands">Available Commands<a class="headerlink" href="#available-commands" title="Permanent link">#</a></h2>
+<ul>
+<li><strong>wap</strong>: Test wireless access point connection and authentication</li>
+</ul>
+<h2 id="commands">Commands<a class="headerlink" href="#commands" title="Permanent link">#</a></h2>
+<h3 id="wap">WAP<a class="headerlink" href="#wap" title="Permanent link">#</a></h3>
 <p>This command performs a complete 802.11 connection test including:
   - Layer 2 association with the access point
   - Full 4-way handshake (for WPA/WPA2/WPA3 networks)
@@ -1029,8 +1103,8 @@
   - (Depending on flags set) Return to original WiFi (if there was one) or 
     stay connected to target network on success</p>
 <p>This tool attempts to leverage various platform specific network utilities to manipulate WiFi connectivity as summarized in the next several Linux/Windows/Darwin sections.</p>
-<h3 id="linux-utilized-network-utilities">Linux Utilized Network Utilities<a class="headerlink" href="#linux-utilized-network-utilities" title="Permanent link">#</a></h3>
-<h4 id="connection-utilities-tried-in-order-based-on-conditions">Connection Utilities (tried in order based on conditions)<a class="headerlink" href="#connection-utilities-tried-in-order-based-on-conditions" title="Permanent link">#</a></h4>
+<h4 id="linux-utilized-network-utilities">Linux Utilized Network Utilities<a class="headerlink" href="#linux-utilized-network-utilities" title="Permanent link">#</a></h4>
+<h5 id="connection-utilities-tried-in-order-based-on-conditions">Connection Utilities (tried in order based on conditions)<a class="headerlink" href="#connection-utilities-tried-in-order-based-on-conditions" title="Permanent link">#</a></h5>
 <table>
 <thead>
 <tr>
@@ -1061,7 +1135,7 @@
 </tr>
 </tbody>
 </table>
-<h4 id="dhcp-clients-tried-in-order-until-one-succeeds">DHCP Clients (tried in order until one succeeds)<a class="headerlink" href="#dhcp-clients-tried-in-order-until-one-succeeds" title="Permanent link">#</a></h4>
+<h5 id="dhcp-clients-tried-in-order-until-one-succeeds">DHCP Clients (tried in order until one succeeds)<a class="headerlink" href="#dhcp-clients-tried-in-order-until-one-succeeds" title="Permanent link">#</a></h5>
 <table>
 <thead>
 <tr>
@@ -1088,7 +1162,7 @@
 </tr>
 </tbody>
 </table>
-<h4 id="dns-configuration-for-systemd-resolved-systems">DNS Configuration (for systemd-resolved systems)<a class="headerlink" href="#dns-configuration-for-systemd-resolved-systems" title="Permanent link">#</a></h4>
+<h5 id="dns-configuration-for-systemd-resolved-systems">DNS Configuration (for systemd-resolved systems)<a class="headerlink" href="#dns-configuration-for-systemd-resolved-systems" title="Permanent link">#</a></h5>
 <table>
 <thead>
 <tr>
@@ -1107,7 +1181,7 @@
 </tr>
 </tbody>
 </table>
-<h4 id="supporting-utilities">Supporting Utilities<a class="headerlink" href="#supporting-utilities" title="Permanent link">#</a></h4>
+<h5 id="supporting-utilities">Supporting Utilities<a class="headerlink" href="#supporting-utilities" title="Permanent link">#</a></h5>
 <table>
 <thead>
 <tr>
@@ -1138,7 +1212,7 @@
 </tr>
 </tbody>
 </table>
-<h4 id="decision-flow">Decision Flow<a class="headerlink" href="#decision-flow" title="Permanent link">#</a></h4>
+<h5 id="decision-flow">Decision Flow<a class="headerlink" href="#decision-flow" title="Permanent link">#</a></h5>
 <div class="highlight"><pre><span></span><code>┌─────────────────────────────────────────┐
 │           Credential Type?              │
 └─────────────────────────────────────────┘
@@ -1163,7 +1237,7 @@
     │
     └──────────────────────────────────────►  Connection
 </code></pre></div>
-<h3 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">#</a></h3>
+<h4 id="usage_1">Usage<a class="headerlink" href="#usage_1" title="Permanent link">#</a></h4>
 <div class="highlight"><pre><span></span><code><span class="c1"># Test the behavior of a WPA2 PSK protected WiFi network</span>
 infrascan<span class="w"> </span>connect<span class="w"> </span>wap<span class="w"> </span>--target-ssid<span class="w"> </span>testssid<span class="w"> </span>--test-psk<span class="w"> </span>testssidpsk<span class="w"> </span>--test-only<span class="w"> </span>--output<span class="w"> </span>json
 
@@ -1184,7 +1258,7 @@ infrascan<span class="w"> </span>connect<span class="w"> </span>wap<span class="
 <span class="c1"># Test the behavior of an open (no auth) WiFi network</span>
 infrascan<span class="w"> </span>connect<span class="w"> </span>wap<span class="w"> </span>--target-ssid<span class="w"> </span>testopenssid<span class="w"> </span>--test-only<span class="w"> </span>--output<span class="w"> </span>json
 </code></pre></div>
-<h3 id="help-text">Help Text<a class="headerlink" href="#help-text" title="Permanent link">#</a></h3>
+<h4 id="help-text">Help Text<a class="headerlink" href="#help-text" title="Permanent link">#</a></h4>
 <div class="highlight"><pre><span></span><code>Test<span class="w"> </span>wireless<span class="w"> </span>access<span class="w"> </span>point<span class="w"> </span>security<span class="w"> </span>by<span class="w"> </span>attempting<span class="w"> </span>a<span class="w"> </span>full<span class="w"> </span>connection<span class="w"> </span>with<span class="w"> </span>authentication.
 
 Test<span class="w"> </span>wireless<span class="w"> </span>access<span class="w"> </span>point<span class="w"> </span>security<span class="w"> </span>by<span class="w"> </span>attempting<span class="w"> </span>a<span class="w"> </span>full<span class="w"> </span>connection<span class="w"> </span>with<span class="w"> </span>authentication.<span class="w"> </span>This<span class="w"> </span>tool<span class="w"> </span>is<span class="w"> </span>useful

@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="AWS enumeration capabilities for security teams of all sizes">
+        <meta name="description" content="Infrastructure scanning capabilities for security teams of all sizes">
       
       
       
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#infrastructure-discovery" class="md-skip">
+        <a href="#discover" class="md-skip">
           Skip to content
         </a>
       
@@ -560,14 +560,41 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#wireless-access-point-discovery" class="md-nav__link">
+  <a href="#usage" class="md-nav__link">
     <span class="md-ellipsis">
-      Wireless Access Point Discovery
+      Usage
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Wireless Access Point Discovery">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#available-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Available Commands
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Commands
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Commands">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#waps" class="md-nav__link">
+    <span class="md-ellipsis">
+      WAPs
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#preparing-a-linux-network-interface-for-passive-scanning" class="md-nav__link">
@@ -576,10 +603,11 @@
     </span>
   </a>
   
-</li>
+    <nav class="md-nav" aria-label="Preparing a Linux network interface for passive scanning">
+      <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#usage" class="md-nav__link">
+  <a href="#usage_1" class="md-nav__link">
     <span class="md-ellipsis">
       Usage
     </span>
@@ -593,6 +621,11 @@
       Help Text
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -844,14 +877,41 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#wireless-access-point-discovery" class="md-nav__link">
+  <a href="#usage" class="md-nav__link">
     <span class="md-ellipsis">
-      Wireless Access Point Discovery
+      Usage
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Wireless Access Point Discovery">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#available-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Available Commands
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Commands
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Commands">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#waps" class="md-nav__link">
+    <span class="md-ellipsis">
+      WAPs
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#preparing-a-linux-network-interface-for-passive-scanning" class="md-nav__link">
@@ -860,10 +920,11 @@
     </span>
   </a>
   
-</li>
+    <nav class="md-nav" aria-label="Preparing a Linux network interface for passive scanning">
+      <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#usage" class="md-nav__link">
+  <a href="#usage_1" class="md-nav__link">
     <span class="md-ellipsis">
       Usage
     </span>
@@ -877,6 +938,11 @@
       Help Text
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -908,8 +974,7 @@
   
 
 
-<h1 id="infrastructure-discovery">Infrastructure Discovery<a class="headerlink" href="#infrastructure-discovery" title="Permanent link">#</a></h1>
-<h2 id="wireless-access-point-discovery">Wireless Access Point Discovery<a class="headerlink" href="#wireless-access-point-discovery" title="Permanent link">#</a></h2>
+<h1 id="discover">Discover<a class="headerlink" href="#discover" title="Permanent link">#</a></h1>
 <p>This command performs 802.11 reconnaissance to discover nearby wireless
 access points. It extracts information from beacon frames including:</p>
 <ul>
@@ -919,6 +984,15 @@ access points. It extracts information from beacon frames including:</p>
 <li>Capabilities: WiFi generation (4/5/6/7), MIMO support</li>
 <li>Vendor: OUI-based manufacturer identification</li>
 </ul>
+<h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">#</a></h2>
+<div class="highlight"><pre><span></span><code>infrascan<span class="w"> </span>discover<span class="w"> </span><span class="o">[</span>command<span class="o">]</span>
+</code></pre></div>
+<h2 id="available-commands">Available Commands<a class="headerlink" href="#available-commands" title="Permanent link">#</a></h2>
+<ul>
+<li><strong>waps</strong>: Discover nearby wireless access points</li>
+</ul>
+<h2 id="commands">Commands<a class="headerlink" href="#commands" title="Permanent link">#</a></h2>
+<h3 id="waps">WAPs<a class="headerlink" href="#waps" title="Permanent link">#</a></h3>
 <p>The <code>discover waps</code> command supports two scanning modes:</p>
 <p><strong>Active Mode (default):</strong> Uses platform-specific system utilities (<code>airport</code> on macOS, <code>iw</code>/<code>iwlist/nmcli</code> on Linux, <code>netsh wlan</code> on Windows) to enumerate nearby networks. These tools emit probe requests, making the scanning device detectable to nearby wireless intrusion detection systems. This mode works out of the box without special privileges on most systems. IMPORTANT: THIS PERFORMS A SINGLE POINT IN TIME SCAN.</p>
 <p><strong>Passive Mode (<code>--passive</code>):</strong> Intended for true zero-RF-emission scanning where the device only listens for beacon frames without transmitting. This mode requires:
@@ -966,7 +1040,7 @@ sudo<span class="w"> </span>ip<span class="w"> </span>link<span class="w"> </spa
 <span class="c1"># Disable power save</span>
 sudo<span class="w"> </span>iw<span class="w"> </span>dev<span class="w"> </span>wlo1<span class="w"> </span><span class="nb">set</span><span class="w"> </span>power_save<span class="w"> </span>off
 </code></pre></div>
-<h3 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">#</a></h3>
+<h4 id="usage_1">Usage<a class="headerlink" href="#usage_1" title="Permanent link">#</a></h4>
 <div class="highlight"><pre><span></span><code><span class="c1"># Scan using default interface (active mode, emits RF)</span>
 infrascan<span class="w"> </span>discover<span class="w"> </span>waps
 
@@ -982,7 +1056,7 @@ infrascan<span class="w"> </span>discover<span class="w"> </span>waps<span class
 <span class="c1"># Scan with custom timeout</span>
 infrascan<span class="w"> </span>discover<span class="w"> </span>waps<span class="w"> </span>--timeout<span class="w"> </span><span class="m">60</span><span class="sb">`</span>
 </code></pre></div>
-<h3 id="help-text">Help Text<a class="headerlink" href="#help-text" title="Permanent link">#</a></h3>
+<h4 id="help-text">Help Text<a class="headerlink" href="#help-text" title="Permanent link">#</a></h4>
 <div class="highlight"><pre><span></span><code>Discover<span class="w"> </span>and<span class="w"> </span>enumerate<span class="w"> </span>wireless<span class="w"> </span>access<span class="w"> </span>points<span class="w"> </span><span class="k">in</span><span class="w"> </span>the<span class="w"> </span>environment.
 
 This<span class="w"> </span><span class="nb">command</span><span class="w"> </span>performs<span class="w"> </span><span class="m">802</span>.11<span class="w"> </span>reconnaissance<span class="w"> </span>to<span class="w"> </span>discover<span class="w"> </span>nearby<span class="w"> </span>wireless
