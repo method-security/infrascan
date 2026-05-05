@@ -284,7 +284,7 @@ func scanPassive(ctx context.Context, interfaceName string, timeout int) ([]*dis
 }
 
 // isRunningAsRoot checks if the current process has root/administrator privileges.
-func isRunningAsRoot() bool {
+func isRunningAsRoot() bool { //nolint:unused
 	switch runtime.GOOS {
 	case "linux", "darwin":
 		// On Unix-like systems, check if UID is 0
