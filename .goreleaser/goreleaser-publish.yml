@@ -70,6 +70,8 @@ dockers_v2:
       "org.opencontainers.image.revision": "{{ .FullCommit }}"
       "org.opencontainers.image.url": "https://method.security"
       "org.opencontainers.image.documentation": "https://github.com/method-security/infrascan"
+    extra_files:
+      - configs/
     sbom: true
 
 signs:
