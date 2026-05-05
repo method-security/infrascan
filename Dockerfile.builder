@@ -1,6 +1,6 @@
 # Dockerfile used for the compilation of the statically compiled infrascan binary
-FROM golang:1.24.4-alpine AS base
-ARG GORELEASER_VERSION="v2.0.1"
+FROM golang:1.26-alpine AS base
+ARG GORELEASER_VERSION="v2.15.4"
 ARG CLI_NAME="infrascan"
 ARG TARGETARCH
 

@@ -20,4 +20,4 @@ exclude:
   paths:
     - "godel"
     - "pkg/products"
-    - generated/**
+    - generated
