@@ -133,7 +133,10 @@ func DiscoverWaps(ctx context.Context, config discover.DiscoverWapsConfig) (*dis
 		svc1log.SafeParam("error_count", len(errors)),
 		svc1log.SafeParam("duration_seconds", endTime.Sub(startTime).Seconds()))
 
-	return report, nil
+	// Preserve partial observations in the report, but return the scan error so
+	// callers do not treat a permission-limited or otherwise incomplete scan as
+	// a successful result.
+	return report, scanErr
 }
 
 // filterBySSID filters observations to only include those matching the target SSID.

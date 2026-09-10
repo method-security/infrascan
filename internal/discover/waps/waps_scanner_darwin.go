@@ -286,7 +286,7 @@ func scanDarwin(ctx context.Context, interfaceName string, timeout int) ([]*disc
 
 		log.Info("Using current network info (full scan requires Location Services permission)")
 		observations, channels := convertCWScanResult(&currentResult)
-		return observations, channels, nil
+		return observations, channels, fmt.Errorf("%s; returned current network only", errStr)
 	}
 
 	if result.interfaceName != nil {
@@ -308,11 +308,8 @@ func scanDarwin(ctx context.Context, interfaceName string, timeout int) ([]*disc
 		log.Warn("Location Services permission incomplete - SSID/BSSID redacted by macOS",
 			svc1log.SafeParam("redacted_networks", redactedCount),
 			svc1log.SafeParam("total_networks", len(observations)))
-		log.Warn("Getting full data is a future improvement that involves delivering the infrascan CLI as a proper MacOS app.")
-
 		scanWarning = fmt.Errorf("Location Services permission incomplete: %d of %d networks have redacted SSID/BSSID. "+
-			"To get full data: 1) Build binary with 'go build', 2) Run the binary directly, "+
-			"3) Grant Location permission when prompted, or enable in System Settings > Privacy & Security > Location Services",
+			"Enable Location Services for the responsible app (Codex or Terminal) in System Settings > Privacy & Security > Location Services, then reopen that app and rerun the scan",
 			redactedCount, len(observations))
 	}
 
