@@ -116,7 +116,7 @@ infrascan connect wap --target-ssid testssid --test-psk testssidpsk --test-only=
 # only if there is central platform connectivity verified
 #
 # Useful for ensuring network switching only when connectivity to tool is not lost
-infrascan connect wap --target-ssid testssid --test-psk testssidpsk --test-only --test-platform-connectivity --platform-url https://platform.com --return-to-original-wifi-if-no-platform-connectivity --output json
+infrascan connect wap --target-ssid testssid --test-psk testssidpsk --test-only=false --test-platform-connectivity --platform-url https://platform.com --return-to-original-wifi-if-no-platform-connectivity --output json
 
 # Test the behavior of an open (no auth) WiFi network
 infrascan connect wap --target-ssid testopenssid --test-only --output json
