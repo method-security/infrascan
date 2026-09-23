@@ -4,7 +4,7 @@ infrascan offers a variety of techniques that allow security teams to discover, 
 
 ## Top Level Commands
 
-infrascan organizes functionality under three primary command groups and their modules:
+infrascan organizes functionality under two primary command groups and their modules:
 
 ### discover
 

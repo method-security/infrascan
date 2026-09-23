@@ -74,7 +74,7 @@ infrascan discover waps --target-ssid "CorpWiFi"
 infrascan discover waps --passive --interface wlan0mon
 
 # Scan with custom timeout
-infrascan discover waps --timeout 60`
+infrascan discover waps --timeout 60
 ```
 
 #### Help Text

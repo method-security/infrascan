@@ -26,7 +26,7 @@ func WithAllowDesktopPopups(ctx context.Context, allow bool) context.Context {
 	return context.WithValue(ctx, allowDesktopPopupsCtxKey{}, allow)
 }
 
-func allowDesktopPopups(ctx context.Context) bool {
+func allowDesktopPopups(ctx context.Context) bool { //nolint:unused // Used by Linux-specific implementations.
 	if ctx == nil {
 		return false
 	}
@@ -68,7 +68,7 @@ func WithPlatformURL(ctx context.Context, url string) context.Context {
 	return context.WithValue(ctx, platformURLCtxKey{}, url)
 }
 
-func getPlatformURL(ctx context.Context) string {
+func getPlatformURL(ctx context.Context) string { //nolint:unused // Used by Linux-specific implementations.
 	if ctx == nil {
 		return ""
 	}

@@ -29,12 +29,12 @@ For the full list of available installation options, please see the [Installatio
 - `docker run ghcr.io/method-security/infrascan`
 - [Installation documentation](./docs/getting-started/installation.md)
 
-[!WARNING]
-Because many of the commands in `infrascan` directly use network interfaces it is highly reccommended to use the binary directly and not docker, whenever possible. It is possible to use Linux Docker on Linux, however various access must be granted and the setup is not easy.
+> [!WARNING]
+> Because many `infrascan` commands directly use network interfaces, running the binary directly is highly recommended. Docker can be used on Linux, but it requires additional host network and interface access.
 
 #### Examples
 
-```
+```bash
 # Discover wireless access points
 infrascan discover waps --timeout 60
 ```
