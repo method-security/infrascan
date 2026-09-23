@@ -1048,13 +1048,13 @@ infrascan<span class="w"> </span>discover<span class="w"> </span>waps
 infrascan<span class="w"> </span>discover<span class="w"> </span>waps<span class="w"> </span>--interface<span class="w"> </span>en0
 
 <span class="c1"># Scan for specific SSID</span>
-infrascan<span class="w"> </span>discover<span class="w"> </span>waps<span class="w"> </span>--target-ssid<span class="w"> </span><span class="s2">&quot;CorpWiFi&quot;</span>
+infrascan<span class="w"> </span>discover<span class="w"> </span>waps<span class="w"> </span>--target-ssid<span class="w"> </span><span class="s2">"CorpWiFi"</span>
 
 <span class="c1"># Passive mode - zero RF emissions (requires monitor mode)</span>
 infrascan<span class="w"> </span>discover<span class="w"> </span>waps<span class="w"> </span>--passive<span class="w"> </span>--interface<span class="w"> </span>wlan0mon
 
 <span class="c1"># Scan with custom timeout</span>
-infrascan<span class="w"> </span>discover<span class="w"> </span>waps<span class="w"> </span>--timeout<span class="w"> </span><span class="m">60</span><span class="sb">`</span>
+infrascan<span class="w"> </span>discover<span class="w"> </span>waps<span class="w"> </span>--timeout<span class="w"> </span><span class="m">60</span>
 </code></pre></div>
 <h4 id="help-text">Help Text<a class="headerlink" href="#help-text" title="Permanent link">#</a></h4>
 <div class="highlight"><pre><span></span><code>Discover<span class="w"> </span>and<span class="w"> </span>enumerate<span class="w"> </span>wireless<span class="w"> </span>access<span class="w"> </span>points<span class="w"> </span><span class="k">in</span><span class="w"> </span>the<span class="w"> </span>environment.
@@ -1079,7 +1079,7 @@ Flags:
 <span class="w">      </span>--timeout<span class="w"> </span>int<span class="w">          </span>Timeout<span class="w"> </span><span class="k">in</span><span class="w"> </span>seconds<span class="w"> </span><span class="k">for</span><span class="w"> </span>the<span class="w"> </span>discovery<span class="w"> </span>scan<span class="w"> </span><span class="o">(</span>default<span class="w"> </span><span class="m">30</span><span class="o">)</span>
 
 Global<span class="w"> </span>Flags:
-<span class="w">  </span>-o,<span class="w"> </span>--output<span class="w"> </span>string<span class="w">        </span>Output<span class="w"> </span>format<span class="w"> </span><span class="o">(</span>signal,<span class="w"> </span>json,<span class="w"> </span>yaml<span class="o">)</span>.<span class="w"> </span>Default<span class="w"> </span>value<span class="w"> </span>is<span class="w"> </span>signal<span class="w"> </span><span class="o">(</span>default<span class="w"> </span><span class="s2">&quot;signal&quot;</span><span class="o">)</span>
+<span class="w">  </span>-o,<span class="w"> </span>--output<span class="w"> </span>string<span class="w">        </span>Output<span class="w"> </span>format<span class="w"> </span><span class="o">(</span>signal,<span class="w"> </span>json,<span class="w"> </span>yaml<span class="o">)</span>.<span class="w"> </span>Default<span class="w"> </span>value<span class="w"> </span>is<span class="w"> </span>signal<span class="w"> </span><span class="o">(</span>default<span class="w"> </span><span class="s2">"signal"</span><span class="o">)</span>
 <span class="w">  </span>-f,<span class="w"> </span>--output-file<span class="w"> </span>string<span class="w">   </span>Path<span class="w"> </span>to<span class="w"> </span>output<span class="w"> </span>file.<span class="w"> </span>If<span class="w"> </span>blank,<span class="w"> </span>will<span class="w"> </span>output<span class="w"> </span>to<span class="w"> </span>STDOUT
 <span class="w">  </span>-q,<span class="w"> </span>--quiet<span class="w">                </span>Suppress<span class="w"> </span>output
 <span class="w">  </span>-v,<span class="w"> </span>--verbose<span class="w">              </span>Verbose<span class="w"> </span>output
