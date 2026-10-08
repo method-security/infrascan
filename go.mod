@@ -1,6 +1,6 @@
 module github.com/Method-Security/infrascan
 
-go 1.26.5
+go 1.26.6
 
 require (
 	github.com/Method-Security/pkg v0.1.1
