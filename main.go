@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"os"
 
 	"github.com/Method-Security/infrascan/cmd"
@@ -10,8 +9,6 @@ import (
 var version = "none"
 
 func main() {
-	flag.Parse()
-
 	infrascan := cmd.NewInfrascan(version)
 	infrascan.InitRootCommand()
 	infrascan.InitDiscoverCommand()
